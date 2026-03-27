@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String?  
+  email         String   @unique
+  password      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  scoutScore    Int      @default(0)
+  reportsCount  Int      @default(0)
+
+  // --- 🏃 FİZİKSEL ÖZELLİKLER ---
+  age           Int?
+  height        Int?
+  weight        Int?
+  foot          String?
+
+  // --- 🌍 LİG VE TAKIM BİLGİLERİ ---
+  country       String?
+  league        String?
+  team          String?
+
+  // --- 🕵️ SCOUT SİSTEMİ ---
+  discoveredBy  String?
+
+  // --- 🏷️ SCOUT ETİKETLERİ (YENİ) ---
+  // Burası backend'de .split(',') ile diziye çevrilecek virgüllü metni tutar.
+  tags          String?  
+
+  // --- 🏆 GLOBAL YAYIN SİSTEMİ ---
+  isGlobal      Boolean  @default(false)
+  isVerified    Boolean  @default(false)
+
+  @@index([discoveredBy])
+  @@index([email])
+}

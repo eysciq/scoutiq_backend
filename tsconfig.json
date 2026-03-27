@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true, // 👈 Bunu ekledik: JSON dosyalarını (örn: package.json) import edebilirsin
+    "lib": ["es2020"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"] // İleride uzun import yollarından kurtulmanı sağlar
+    }
+  },
+  "include": ["src/**/*"]
+}
