@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, ScrollView, StatusBar, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, StatusBar, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// 🎨 TAKIM RENKLERİ
-const teamColors: any = {
-  'galatasaray': { primary: '#A90432', text: '#FDB912' },
-  'fenerbahçe': { primary: '#002347', text: '#FEDD00' },
-  'beşiktaş': { primary: '#000000', text: '#FFFFFF' },
-  'trabzonspor': { primary: '#800020', text: '#87ceeb' },
-  'real madrid': { primary: '#FFFFFF', text: '#FEBE10' },
-  'barcelona': { primary: '#004D98', text: '#A50044' },
-  'manchester city': { primary: '#6CABDD', text: '#000000' },
-};
+import { CONFIG, TEAM_COLORS } from '../../constants';
 
 export default function ExploreScreen() {
   const [players, setPlayers] = useState<any[]>([]);
@@ -22,19 +11,15 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
-  const BACKEND_URL = 'http://192.168.1.181:3001';
-
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Sadece Global Yıldızları çekiyoruz
-      const response = await fetch(`${BACKEND_URL}/global-players`);
+      const response = await fetch(`${CONFIG.BACKEND_URL}/global-players`);
       const data = await response.json();
-      
       setPlayers(data);
       setFilteredPlayers(data);
     } catch (error) {
-      console.log("❌ Keşfet Veri çekme hatası:", error);
+      console.log("❌ Keşfet Hatası:", error);
     } finally {
       setLoading(false);
     }
@@ -43,82 +28,40 @@ export default function ExploreScreen() {
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
-    let result = players;
-    if (searchQuery.trim() !== '') {
-      result = result.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()));
-    }
-    setFilteredPlayers(result);
+    const res = players.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()));
+    setFilteredPlayers(res);
   }, [searchQuery, players]);
-
-  const renderPlayer = ({ item }: any) => {
-    const teamKey = item.team ? item.team.toLowerCase().trim() : '';
-    const colors = teamColors[teamKey] || { primary: '#333', text: '#95a5a6' };
-
-    return (
-      <TouchableOpacity 
-        style={styles.playerCard} 
-        activeOpacity={0.8}
-        onPress={() => router.push(`/(tabs)/player-details?id=${item.id}`)}
-      >
-        <View style={styles.cardHeader}>
-          {/* 🔥 HAYALET REYTİNGLER SİLİNDİ, DÜNYA İKONU GELDİ */}
-          <View style={[styles.ratingBadge, { backgroundColor: '#2980b9' }]}>
-             <MaterialCommunityIcons name="earth" size={24} color="#fff" />
-          </View>
-
-          <View style={styles.infoContainer}>
-            <Text style={styles.playerName}>{item.name}</Text>
-            <Text style={styles.posText}>{item.position} • {item.team || 'Dünya Yıldızı'}</Text>
-          </View>
-          
-          {/* TAKIM ROZETİ */}
-          <View style={[styles.teamBadge, { backgroundColor: colors.primary, borderColor: colors.text, borderWidth: 1 }]}>
-            <Text style={[styles.teamBadgeText, { color: colors.text }]}>
-              {item.team ? item.team.substring(0, 3).toUpperCase() : 'GLB'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.footerRow}>
-           <Text style={styles.viewRaporText}>Keşfet ve Not Ver</Text>
-           <MaterialCommunityIcons name="chevron-right" size={18} color="#2ecc71" />
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Yıldızlar Havuzu</Text>
-        <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
-             <MaterialCommunityIcons name="refresh" size={24} color="#2ecc71" />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={fetchData}><MaterialCommunityIcons name="refresh" size={24} color="#2ecc71" /></TouchableOpacity>
       </View>
-
       <View style={styles.searchBox}>
-          <View style={styles.searchWrapper}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#555" style={{marginRight: 8}} />
-            <TextInput 
-              style={styles.searchInput}
-              placeholder="Dünya yıldızlarını ara..."
-              placeholderTextColor="#555"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
+        <View style={styles.searchWrapper}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#555" />
+          <TextInput style={styles.searchInput} placeholder="Dünya yıldızlarını ara..." placeholderTextColor="#555" value={searchQuery} onChangeText={setSearchQuery} />
+        </View>
       </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#2ecc71" style={{ marginTop: 50 }} />
-      ) : (
+      {loading ? <ActivityIndicator size="large" color="#2ecc71" style={{marginTop: 50}} /> : (
         <FlatList
           data={filteredPlayers}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderPlayer}
-          contentContainerStyle={{ padding: 15, paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
+          renderItem={({item}) => {
+            const colors = TEAM_COLORS[item.team?.toLowerCase().trim()] || { primary: '#2c2c2c', text: '#95a5a6' };
+            return (
+              <TouchableOpacity style={styles.card} onPress={() => router.push({ pathname: "/player-details", params: { id: item.id } })}>
+                <View style={styles.cardMain}>
+                  <View style={styles.worldIcon}><MaterialCommunityIcons name="earth" size={24} color="#fff" /></View>
+                  <View style={{flex: 1}}><Text style={styles.pName}>{item.name}</Text><Text style={styles.pSub}>{item.position} • {item.age || '20'} Yaş</Text></View>
+                  <View style={[styles.tBadge, { backgroundColor: colors.primary }]}><Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 10 }}>{item.team?.substring(0,3).toUpperCase() || 'GLB'}</Text></View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          contentContainerStyle={{ padding: 15 }}
         />
       )}
     </SafeAreaView>
@@ -127,20 +70,15 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 40, backgroundColor: '#1e1e1e' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  refreshBtn: { padding: 5 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, backgroundColor: '#1e1e1e' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   searchBox: { padding: 15, backgroundColor: '#1e1e1e', borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
   searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2c2c2c', borderRadius: 12, paddingHorizontal: 12, height: 45 },
-  searchInput: { flex: 1, color: '#fff', fontSize: 15 },
-  playerCard: { backgroundColor: '#1e1e1e', borderRadius: 18, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: '#333', elevation: 3 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  ratingBadge: { width: 44, height: 44, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  infoContainer: { flex: 1 },
-  playerName: { fontSize: 17, fontWeight: 'bold', color: '#fff' },
-  posText: { color: '#7f8c8d', fontSize: 12, marginTop: 3 },
-  teamBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, minWidth: 45, alignItems: 'center' },
-  teamBadgeText: { fontSize: 11, fontWeight: 'bold' },
-  footerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#222' },
-  viewRaporText: { color: '#2ecc71', fontSize: 12, fontWeight: 'bold', marginRight: 5 }
+  searchInput: { flex: 1, color: '#fff', marginLeft: 10 },
+  card: { backgroundColor: '#1e1e1e', borderRadius: 15, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: '#333' },
+  cardMain: { flexDirection: 'row', alignItems: 'center' },
+  worldIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#2980b9', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  pName: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  pSub: { color: '#7f8c8d', fontSize: 12 },
+  tBadge: { padding: 5, borderRadius: 5, minWidth: 40, alignItems: 'center' }
 });

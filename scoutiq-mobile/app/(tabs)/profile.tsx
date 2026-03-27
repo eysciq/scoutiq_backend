@@ -1,8 +1,12 @@
+// Dosya Yolu: app/(tabs)/profile.tsx
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, ScrollView, RefreshControl, StatusBar, Modal, FlatList } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// 🚀 MERKEZİ AYARLARI ÇEKİYORUZ
+import { CONFIG } from '../../constants';
 
 const LegendItem = ({ color, label }: any) => (
   <View style={styles.legendItem}>
@@ -26,8 +30,6 @@ export default function ProfileScreen() {
     avgAge: 0, forvet: 0, orta: 0, defans: 0, kaleci: 0, total: 0
   });
 
-  const BACKEND_URL = 'http://192.168.1.181:3001';
-
   const getScoutRank = (score: number): { label: string, color: string, icon: any } => {
     if (score >= 500) return { label: "EFSANE SCOUT", color: "#f1c40f", icon: "crown" as any };
     if (score >= 200) return { label: "USTA GÖZLEMCİ", color: "#e67e22", icon: "shield-star" as any };
@@ -41,7 +43,6 @@ export default function ProfileScreen() {
       const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
       setUserEmail(email);
 
-      // 🔥 YENİ: KAYITLI İSMİ ÇEKİYORUZ
       const savedName = await AsyncStorage.getItem('userName');
       setUserName(savedName || (email ? email.split('@')[0] : 'Misafir'));
 
@@ -49,13 +50,15 @@ export default function ProfileScreen() {
 
       const safeEmail = encodeURIComponent(email);
       
-      const profileRes = await fetch(`${BACKEND_URL}/my-profile?email=${safeEmail}`);
+      // 📡 PROFİL VERİSİNİ ÇEK
+      const profileRes = await fetch(`${CONFIG.BACKEND_URL}/my-profile?email=${safeEmail}`);
       if (profileRes.ok) {
         const veri = await profileRes.json();
         setStats({ score: veri.score || 0, count: veri.count || 0 });
       }
 
-      const playersRes = await fetch(`${BACKEND_URL}/players?scoutEmail=${safeEmail}`);
+      // 📡 RAPORLARI ÇEK (DNA İÇİN)
+      const playersRes = await fetch(`${CONFIG.BACKEND_URL}/players?scoutEmail=${safeEmail}`);
       if (playersRes.ok) {
         const players = await playersRes.json();
         setMyReports(players);
@@ -77,10 +80,10 @@ export default function ProfileScreen() {
     players.forEach(p => {
       if (p.age) totalAge += Number(p.age);
       const pos = (p.position || "").toUpperCase();
-      if (pos.includes('SNT') || pos.includes('FOR') || pos.includes('KANAT')) fv++;
-      else if (pos.includes('OS') || pos.includes('MER') || pos.includes('ON') || pos.includes('DOS')) os++;
-      else if (pos.includes('DEF') || pos.includes('STP') || pos.includes('BEK') || pos.includes('CB')) df++;
-      else if (pos.includes('KL') || pos.includes('GK')) kl++;
+      if (pos.includes('FOR') || pos.includes('ATT') || pos.includes('KANAT')) fv++;
+      else if (pos.includes('ORT') || pos.includes('MID') || pos.includes('MER')) os++;
+      else if (pos.includes('DEF') || pos.includes('STP') || pos.includes('BEK')) df++;
+      else if (pos.includes('KAL') || pos.includes('GK')) kl++;
       else os++; 
     });
 
@@ -92,14 +95,17 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => { loadProfileData(); }, []));
 
-  // 🔥 YENİ: HATA VERMEYEN, TEMİZ ÇIKIŞ YAP FONKSİYONU
+  // 🚀 KESİN ÇÖZÜM: OTURUMU KAPAT VE AUTH EKRANINA FIRLAT
   const cikisYap = () => {
     Alert.alert("Güvenli Çıkış", "Oturumunuz kapatılsın mı?", [
       { text: "İptal", style: "cancel" },
       { text: "Evet", style: "destructive", onPress: async () => {
-          await AsyncStorage.removeItem('userEmail');
-          await AsyncStorage.removeItem('userName');
-          router.replace('/auth'); // 🚀 SİHİRLİ DOKUNUŞ BURADA
+          try {
+            await AsyncStorage.clear(); // Her şeyi temizle
+            router.replace('/auth'); // 🚪 Giriş kapısına fırlat
+          } catch (e) {
+            Alert.alert("Hata", "Çıkış yapılamadı.");
+          }
       }}
     ]);
   };
@@ -123,9 +129,7 @@ export default function ProfileScreen() {
               <MaterialCommunityIcons name={rank.icon} size={60} color={rank.color} />
             </View>
             
-            {/* 🔥 YENİ: PROFİL İSMİ ARTIK DAHA ŞIK */}
             <Text style={styles.nameText}>{userName.toUpperCase()}</Text>
-            
             <Text style={[styles.rankText, { color: rank.color }]}>{rank.label}</Text>
             
             <View style={styles.statsRow}>
@@ -175,6 +179,7 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
+      {/* Rapor Geçmişi Modalı */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

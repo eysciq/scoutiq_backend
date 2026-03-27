@@ -1,15 +1,16 @@
+// Dosya Yolu: app/auth.tsx
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🚨 GÜNCEL IP ADRESİN
-const BACKEND_URL = 'http://192.168.1.181:3001';
+// 🚀 MERKEZİ AYARLAR (Yolu dosya konumuna göre güncelledik)
+import { CONFIG } from '../constants'; 
 
 export default function AuthScreen() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true); // True = Giriş Yap, False = Kayıt Ol
+  const [isLogin, setIsLogin] = useState(true); 
   const [loading, setLoading] = useState(false);
 
   // Form Verileri
@@ -17,35 +18,39 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // 🚀 KAYIT OL (REGISTER) İŞLEMİ
+  // 🚀 KAYIT OL (REGISTER)
   const handleRegister = async () => {
-    if (!name || !email || !password) {
+    if (!email || !password || (!isLogin && !name)) {
       Alert.alert("Hata", "Lütfen tüm alanları doldurun.");
       return;
     }
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/register`, {
+      const response = await fetch(`${CONFIG.BACKEND_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password })
+        body: JSON.stringify({ 
+          name: name.trim(), 
+          email: email.toLowerCase().trim(), 
+          password 
+        })
       });
       const data = await response.json();
       
       if (response.ok) {
         Alert.alert("Aramıza Hoş Geldin!", "Hesabın oluşturuldu, şimdi giriş yapabilirsin.");
-        setIsLogin(true); // Başarılı kayıttan sonra Giriş ekranına yönlendir
+        setIsLogin(true); 
       } else {
-        Alert.alert("Kayıt Başarısız", data.error || "Bir sorun oluştu.");
+        Alert.alert("Kayıt Başarısız", data.message || "Bu e-posta kullanımda olabilir.");
       }
     } catch (error) {
-      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. IP adresini kontrol et.");
+      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. Backend IP adresini kontrol et.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔑 GİRİŞ YAP (LOGIN) İŞLEMİ
+  // 🔑 GİRİŞ YAP (LOGIN)
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Hata", "E-posta ve şifre zorunludur.");
@@ -53,22 +58,26 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/login`, {
+      const response = await fetch(`${CONFIG.BACKEND_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password })
+        body: JSON.stringify({ 
+          email: email.toLowerCase().trim(), 
+          password 
+        })
       });
       const data = await response.json();
 
       if (response.ok) {
-        // Giriş başarılıysa e-postayı telefona kaydet ve ana uygulamaya (tabs) geç!
+        // 💾 Oturumu hatırla
         await AsyncStorage.setItem('userEmail', email.toLowerCase().trim());
+        // 🚀 Ana uygulamaya geç!
         router.replace('/(tabs)'); 
       } else {
-        Alert.alert("Giriş Başarısız", data.error || "Şifre veya e-posta hatalı.");
+        Alert.alert("Giriş Başarısız", data.message || "Şifre veya e-posta hatalı.");
       }
     } catch (error) {
-      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. IP adresini kontrol et.");
+      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı.");
     } finally {
       setLoading(false);
     }
@@ -79,14 +88,12 @@ export default function AuthScreen() {
       <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         
-        {/* LOGO VE BAŞLIK */}
         <View style={styles.logoContainer}>
           <MaterialCommunityIcons name="shield-star" size={80} color="#2ecc71" />
           <Text style={styles.appName}>SCOUT<Text style={{color: '#2ecc71'}}>IQ</Text></Text>
           <Text style={styles.subtitle}>Yeni Nesil Yetenek Avcısı</Text>
         </View>
 
-        {/* FORM ALANI */}
         <View style={styles.formContainer}>
           <View style={styles.tabContainer}>
             <TouchableOpacity style={[styles.tabBtn, isLogin && styles.tabBtnActive]} onPress={() => setIsLogin(true)}>
@@ -106,7 +113,7 @@ export default function AuthScreen() {
 
           <View style={styles.inputWrapper}>
             <MaterialCommunityIcons name="email-outline" size={20} color="#95a5a6" style={styles.icon} />
-            <TextInput style={styles.input} placeholder="E-posta Adresi" placeholderTextColor="#7f8c8d" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder="E-posta" placeholderTextColor="#7f8c8d" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
           </View>
 
           <View style={styles.inputWrapper}>

@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,9 +13,9 @@ model User {
   id            Int      @id @default(autoincrement())
   name          String?  
   email         String   @unique
-  password      String
+  password      String?  // 👈 BURAYI OPSİYONEL (?) YAPTIK, HATA BURADAN GELİYORDU
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
+  updatedAt     DateTime @updatedAt // 👈 Burayı standart hale getirdik
 
   scoutScore    Int      @default(0)
   reportsCount  Int      @default(0)
@@ -32,8 +34,7 @@ model User {
   // --- 🕵️ SCOUT SİSTEMİ ---
   discoveredBy  String?
 
-  // --- 🏷️ SCOUT ETİKETLERİ (YENİ) ---
-  // Burası backend'de .split(',') ile diziye çevrilecek virgüllü metni tutar.
+  // --- 🏷️ SCOUT ETİKETLERİ ---
   tags          String?  
 
   // --- 🏆 GLOBAL YAYIN SİSTEMİ ---

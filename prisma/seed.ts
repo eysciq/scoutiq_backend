@@ -5,8 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('⏳ Dünya Yıldızları stadyuma iniyor...');
 
-  // Şimdilik test için en popüler yıldızları ve bizim genç yetenekleri ekliyoruz.
-  // İleride buraya Excel'den 20.000 oyuncu da çekebiliriz!
   const stars = [
     { name: 'Lionel Messi', position: 'Sağ Kanat', rating: '93', age: 36, height: 170, weight: 72, foot: 'Sol' },
     { name: 'Cristiano Ronaldo', position: 'Santrfor', rating: '90', age: 39, height: 187, weight: 83, foot: 'Sağ' },
@@ -18,28 +16,35 @@ async function main() {
   ];
 
   for (const player of stars) {
-    // Aynı oyuncunun iki kere eklenmesini önlemek için kontrol edelim
-    const email = `star_${player.name.replace(/\s+/g, '').toLowerCase()}@scoutiq.com`;
-    const existingPlayer = await prisma.user.findUnique({ where: { email } });
+    // Email oluştururken Türkçe karakterleri ve boşlukları temizleyelim (Daha güvenli)
+    const safeName = player.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Aksanları temizle
+      .replace(/\s+/g, '')
+      .toLowerCase();
+    
+    const email = `star_${safeName}@scoutiq.com`;
 
-    if (!existingPlayer) {
-      await prisma.user.create({
-        data: {
-          email: email,
-          password: `${player.name}|${player.position}|${player.rating}`, 
-          age: player.age,
-          height: player.height,
-          weight: player.weight,
-          foot: player.foot,
-          isGlobal: true,    // 🌍 Herkesin aramasında çıkar!
-          isVerified: true,  // 🛡️ Admin (Sistem) onaylı gerçek veri!
-          discoveredBy: 'Sistem',
-        }
-      });
-      console.log(`✅ Transfer Tamamlandı: ${player.name}`);
-    } else {
-      console.log(`⚠️ ${player.name} zaten veritabanında var, atlanıyor.`);
-    }
+    await prisma.user.upsert({
+      where: { email: email },
+      update: {}, // Eğer varsa dokunma
+      create: {
+        email: email,
+        name: player.name, // Şemadaki name alanını da dolduralım
+        // 🔥 ÖNEMLİ: Controller ile aynı formatı koruyoruz
+        password: `${player.name}|${player.position}|${player.rating}`, 
+        age: player.age,
+        height: player.height,
+        weight: player.weight,
+        foot: player.foot,
+        isGlobal: true,    // 🌍 Keşfet (Radar) kısmında gözükür
+        isVerified: true,  // ✅ Onaylı veri
+        discoveredBy: 'Sistem',
+        scoutScore: 0,
+        reportsCount: 0
+      },
+    });
+    console.log(`✅ Transfer Tamamlandı: ${player.name}`);
   }
 
   console.log('🏆 Tüm yıldızlar başarıyla veritabanına işlendi!');

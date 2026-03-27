@@ -1,3 +1,4 @@
+// Dosya Yolu: app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -18,7 +19,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#7f8c8d', 
       }}
     >
-      {/* 1. PORTFÖYÜM (Ana Sayfa) */}
+      {/* 1. PORTFÖYÜM (Kendi Scout Raporların) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -29,18 +30,18 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 📡 2. SCOUT RADARI (Eski Keşfet ile Birleşti - Tek Arama Motoru) */}
+      {/* 🌍 2. KEŞFET (Dünya Yıldızları & Global Havuz) */}
       <Tabs.Screen
-        name="radar"
+        name="explore"
         options={{
-          title: 'Keşfet & Radar',
+          title: 'Keşfet',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="radar" size={size} color={color} />
+            <MaterialCommunityIcons name="earth" size={size} color={color} />
           ),
         }}
       />
 
-      {/* 3. ANA EKLEME SAYFASI */}
+      {/* ➕ 3. YENİ RAPOR EKLE (Ana Aksiyon Düğmesi) */}
       <Tabs.Screen
         name="add"
         options={{
@@ -52,7 +53,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. KIYASLA (Oyuncuları kapıştırdığımız yer) */}
+      {/* ⚖️ 4. KIYASLA */}
       <Tabs.Screen
         name="compare"
         options={{
@@ -63,7 +64,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 5. LİDERLİK TABLOSU */}
+      {/* 🏆 5. SIRALAMA (Leaderboard) */}
       <Tabs.Screen
         name="leaderboard"
         options={{
@@ -74,7 +75,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 6. PROFİL */}
+      {/* 👤 6. PROFİL */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -85,8 +86,8 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 🛡️ GİZLİ ROTALAR (Menüde görünmezler) */}
-      <Tabs.Screen name="explore" options={{ href: null }} /> {/* 🔥 Eski Keşfet sekmesi gizlendi */}
+      {/* 🛡️ GİZLİ ROTALAR (Menüde Görünmezler) */}
+      <Tabs.Screen name="radar" options={{ href: null }} /> 
       <Tabs.Screen name="edit-player" options={{ href: null }} />
       <Tabs.Screen name="player-details" options={{ href: null }} />
       

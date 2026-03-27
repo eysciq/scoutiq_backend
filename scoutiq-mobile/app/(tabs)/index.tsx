@@ -4,7 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🚀 SABİTLERİ MERKEZDEN İÇERİ ALIYORUZ
+// 🚀 Klasör yapısına göre yol güncellendi
 import { CONFIG, TEAM_COLORS } from '../../constants';
 
 export default function MyPortfolioScreen() {
@@ -16,7 +16,7 @@ export default function MyPortfolioScreen() {
   const [userName, setUserName] = useState('Scout');
   const router = useRouter();
 
-  // 📡 VERİLERİ ÇEK (Artık IP adresi CONFIG dosyasından geliyor)
+  // 📡 Verileri çek
   const fetchMyPlayers = async () => {
     try {
       const email = await AsyncStorage.getItem('userEmail');
@@ -49,18 +49,22 @@ export default function MyPortfolioScreen() {
     }, [])
   );
 
-  // 🗑️ SİLME İŞLEMİ
+  // 🗑️ Silme İşlemi (Hata kontrolü eklendi)
   const handleDelete = (id: number, name: string) => {
     Alert.alert("Emin misin?", `${name} arşive kaldırılacak.`, [
       { text: "Vazgeç" },
       { text: "Sil", style: "destructive", onPress: async () => {
-          await fetch(`${CONFIG.BACKEND_URL}/delete-player/${id}`, { method: 'DELETE' });
-          fetchMyPlayers();
+          try {
+            const res = await fetch(`${CONFIG.BACKEND_URL}/delete-player/${id}`, { method: 'DELETE' });
+            if (res.ok) fetchMyPlayers();
+          } catch (e) {
+            Alert.alert("Hata", "Silme işlemi yapılamadı.");
+          }
       }}
     ]);
   };
 
-  // 🔍 ARAMA MOTORU
+  // 🔍 Arama Motoru
   useEffect(() => {
     const query = searchQuery.toLowerCase().trim();
     if (query) {
@@ -76,8 +80,8 @@ export default function MyPortfolioScreen() {
 
   const renderPlayer = ({ item }: any) => {
     const teamKey = item.team ? item.team.toLowerCase().trim() : '';
-    // 🎨 Rengi de artık merkezden çekiyoruz
-    const colors = TEAM_COLORS[teamKey] || { primary: '#2c3e50', text: '#95a5a6' };
+    // TEAM_COLORS içindeki secondary yapısına uyum sağlandı
+    const colors = TEAM_COLORS[teamKey] || { primary: '#2c3e50', secondary: '#34495e', text: '#95a5a6' };
 
     const isHighPotential = parseInt(item.rating) >= 80;
 
@@ -85,7 +89,7 @@ export default function MyPortfolioScreen() {
       <TouchableOpacity 
         style={styles.playerCard}
         activeOpacity={0.8}
-        onPress={() => router.push(`/(tabs)/player-details?id=${item.id}`)}
+        onPress={() => router.push({ pathname: "/player-details", params: { id: item.id } })}
       >
         <View style={styles.cardHeader}>
           <View style={[styles.ratingBadge, { backgroundColor: isHighPotential ? '#f1c40f' : '#2ecc71' }]}>
@@ -97,8 +101,8 @@ export default function MyPortfolioScreen() {
             <Text style={styles.positionText}>{item.position} • {item.team || 'Serbest'}</Text>
           </View>
 
-          <View style={[styles.teamBadge, { backgroundColor: colors.primary, borderColor: colors.text, borderWidth: 1 }]}>
-            <Text style={[styles.teamBadgeText, { color: colors.primary === '#FFFFFF' ? '#000' : colors.text }]}>
+          <View style={[styles.teamBadge, { backgroundColor: colors.primary, borderColor: colors.secondary, borderWidth: 1 }]}>
+            <Text style={[styles.teamBadgeText, { color: colors.text }]}>
               {item.team ? item.team.substring(0, 3).toUpperCase() : 'FA'}
             </Text>
           </View>
@@ -113,7 +117,7 @@ export default function MyPortfolioScreen() {
           <View style={styles.btnGroup}>
             <TouchableOpacity 
               style={styles.smallActionBtn} 
-              onPress={() => router.push(`/(tabs)/edit-player?id=${item.id}`)}
+              onPress={() => router.push({ pathname: "/edit-player", params: { id: item.id } })}
             >
               <MaterialCommunityIcons name="pencil-outline" size={16} color="#f1c40f" />
             </TouchableOpacity>

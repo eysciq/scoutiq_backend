@@ -4,14 +4,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
-// 🛑 Uygulama açılış ekranının hemen kaybolmasını engeller (Pürüzsüz açılış için)
+// 🛑 Uygulama açılış ekranının pürüzsüz olması için bekletiyoruz
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  // Uygulamanın iskeleti yüklendiğinde açılış logosunu yumuşakça gizler
   useEffect(() => {
+    // Uygulama hazır olduğunda splash screen'i gizle
     SplashScreen.hideAsync();
   }, []);
 
@@ -19,17 +19,38 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         
-        {/* 🚪 BEKÇİ SAYFASI (Giriş yapılmış mı kontrol eder) */}
+        {/* 🚪 BEKÇİ / KONTROL SAYFASI */}
         <Stack.Screen name="index" />
         
-        {/* 🔐 GİRİŞ / KAYIT SAYFASI */}
+        {/* 🔐 GİRİŞ & KAYIT SİSTEMİ */}
         <Stack.Screen name="login" />
         
-        {/* ⚽ ANA UYGULAMA (Portföy, Keşfet, Profil sekmeleri) */}
-        <Stack.Screen name="(tabs)" />
+        {/* ⚽ ANA TAB SİSTEMİ (Portföy, Keşfet, Profil) */}
+        <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
         
-        {/* ❌ YANLIŞ LİNK HATASI */}
-        <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
+        {/* 📝 OYUNCU DÜZENLEME & CLONE SAYFASI */}
+        <Stack.Screen 
+          name="edit-player" 
+          options={{ 
+            presentation: 'modal', // Alttan açılan şık bir modal efekti
+            animation: 'slide_from_bottom' 
+          }} 
+        />
+
+        {/* 🔍 OYUNCU DETAY SAYFASI */}
+        <Stack.Screen 
+          name="player-details/[id]" 
+          options={{ 
+            presentation: 'card', 
+            animation: 'slide_from_right' 
+          }} 
+        />
+        
+        {/* 🏆 LİDERLİK TABLOSU (Eğer ayrı sayfaysa) */}
+        <Stack.Screen name="leaderboard" options={{ presentation: 'modal' }} />
+
+        {/* ❌ HATA SAYFASI */}
+        <Stack.Screen name="+not-found" options={{ presentation: 'transparentModal' }} />
         
       </Stack>
     </ThemeProvider>

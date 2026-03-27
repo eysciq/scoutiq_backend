@@ -1,41 +1,45 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+/**
+ * ScoutIQ Profesyonel Renk Paleti
+ * Ana Yeşil: #2ecc71 (Başarı ve Aksiyon)
+ * Arka Plan: #121212 (Derin Siyah)
+ * Kartlar: #1e1e1e (Vurgulu Gri)
+ */
+
+const scoutGreen = '#2ecc71';
+const scoutBlue = '#3498db';
+const scoutYellow = '#f1c40f';
 
 export const Colors = {
   light: {
     text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
+    background: '#F5F6FA', // Göz yormayan açık gri/beyaz
+    tint: scoutGreen,
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconSelected: scoutGreen,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
+    text: '#FFFFFF',
+    background: '#121212', // Senin kullandığın ana siyah
+    tint: scoutGreen,
     icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconDefault: '#444444',
+    tabIconSelected: scoutGreen,
+    card: '#1e1e1e', // Kartlar için özel vurgu rengi
+    border: '#333333',
+    error: '#e74c3c',
+    warning: scoutYellow,
+    info: scoutBlue
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

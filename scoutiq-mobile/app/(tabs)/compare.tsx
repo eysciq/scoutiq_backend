@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, ScrollView, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, ScrollView, StatusBar, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// 📡 Backend URL
 const BACKEND_URL = 'http://192.168.1.181:3001';
 
 export default function CompareScreen() {
@@ -11,15 +12,13 @@ export default function CompareScreen() {
   const [filteredPlayers, setFilteredPlayers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Seçilen Oyuncular
   const [player1, setPlayer1] = useState<any>(null);
   const [player2, setPlayer2] = useState<any>(null);
   
-  // Modal Kontrolü
   const [modalVisible, setModalVisible] = useState(false);
   const [selectingFor, setSelectingFor] = useState<1 | 2>(1);
 
-  // 📡 Tüm Oyuncuları (Senin Raporların + Dünya Yıldızları) Çek
+  // 📡 Oyuncuları Çek
   const fetchAllPlayersForCompare = async () => {
     setLoading(true);
     try {
@@ -38,7 +37,7 @@ export default function CompareScreen() {
       setAllPlayers(combined);
       setFilteredPlayers(combined);
     } catch (error) {
-      console.log("❌ Karşılaştırma Verisi Çekilemedi:", error);
+      console.log("❌ Karşılaştırma Verisi Hatası:", error);
     } finally {
       setLoading(false);
     }
@@ -48,12 +47,12 @@ export default function CompareScreen() {
     fetchAllPlayersForCompare();
   }, []);
 
-  // 🔍 Arama Motoru (Modal İçi)
+  // 🔍 Arama Filtresi
   useEffect(() => {
-    if (searchQuery.trim() === '') {
+    const lowerQ = searchQuery.toLowerCase().trim();
+    if (lowerQ === '') {
       setFilteredPlayers(allPlayers);
     } else {
-      const lowerQ = searchQuery.toLowerCase().trim();
       setFilteredPlayers(allPlayers.filter(p => p.name.toLowerCase().includes(lowerQ)));
     }
   }, [searchQuery, allPlayers]);
@@ -70,23 +69,23 @@ export default function CompareScreen() {
     setModalVisible(false);
   };
 
-  // 📊 Çubuk Grafik Hesaplayıcı (Kim Daha İyi?)
+  // 📊 Kıyaslama Çubukları
   const renderComparisonBar = (label: string, val1: any, val2: any, isGlobal1: boolean, isGlobal2: boolean, isLowerBetter = false) => {
-    // 🔥 Eğer her ikisi de (veya biri) Global oyuncuysa (reytingi yoksa) ve biz "POTANSİYEL" arıyorsak, çubuk çizme!
+    // Özel Durum: Global oyuncu reytingi
     if (label === "POTANSİYEL (OVR)" && (isGlobal1 || isGlobal2)) {
       return (
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>{label}</Text>
           <View style={styles.textStatRow}>
              <View style={styles.textStatSide}>
-               <Text style={[styles.textStatValue, {color: isGlobal1 ? '#7f8c8d' : '#fff'}]}>
-                 {isGlobal1 ? 'Keşif Bekleniyor' : val1}
+               <Text style={[styles.textStatValue, {color: isGlobal1 ? '#7f8c8d' : '#2ecc71'}]}>
+                 {isGlobal1 ? 'Keşif Gerekli' : val1}
                </Text>
              </View>
              <Text style={styles.textStatLabel}>OVR</Text>
              <View style={styles.textStatSide}>
-               <Text style={[styles.textStatValue, {color: isGlobal2 ? '#7f8c8d' : '#fff'}]}>
-                 {isGlobal2 ? 'Keşif Bekleniyor' : val2}
+               <Text style={[styles.textStatValue, {color: isGlobal2 ? '#7f8c8d' : '#2ecc71'}]}>
+                 {isGlobal2 ? 'Keşif Gerekli' : val2}
                </Text>
              </View>
           </View>
@@ -94,20 +93,16 @@ export default function CompareScreen() {
       );
     }
 
-    const num1 = Number(val1) || 0;
-    const num2 = Number(val2) || 0;
+    const num1 = parseFloat(val1) || 0;
+    const num2 = parseFloat(val2) || 0;
     
     let p1Color = '#95a5a6';
     let p2Color = '#95a5a6';
 
-    if (num1 !== num2) {
-      if (isLowerBetter) {
-        p1Color = num1 < num2 ? '#2ecc71' : '#e74c3c';
-        p2Color = num2 < num1 ? '#2ecc71' : '#e74c3c';
-      } else {
-        p1Color = num1 > num2 ? '#2ecc71' : '#e74c3c';
-        p2Color = num2 > num1 ? '#2ecc71' : '#e74c3c';
-      }
+    if (num1 !== num2 && num1 !== 0 && num2 !== 0) {
+      const condition = isLowerBetter ? num1 < num2 : num1 > num2;
+      p1Color = condition ? '#2ecc71' : '#e74c3c';
+      p2Color = condition ? '#e74c3c' : '#2ecc71';
     }
 
     const max = Math.max(num1, num2, 1); 
@@ -120,11 +115,11 @@ export default function CompareScreen() {
         <View style={styles.barContainer}>
           <View style={styles.barSideLeft}>
             <Text style={[styles.barValueText, { color: p1Color, marginRight: 8 }]}>{val1 || '-'}</Text>
-            <View style={[styles.barFill, { width: `${p1Width}%`, backgroundColor: p1Color, alignSelf: 'flex-end' }]} />
+            <View style={[styles.barFill, { width: `${p1Width}%`, backgroundColor: p1Color }]} />
           </View>
           <View style={styles.barDivider} />
           <View style={styles.barSideRight}>
-            <View style={[styles.barFill, { width: `${p2Width}%`, backgroundColor: p2Color, alignSelf: 'flex-start' }]} />
+            <View style={[styles.barFill, { width: `${p2Width}%`, backgroundColor: p2Color }]} />
             <Text style={[styles.barValueText, { color: p2Color, marginLeft: 8 }]}>{val2 || '-'}</Text>
           </View>
         </View>
@@ -141,9 +136,7 @@ export default function CompareScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 🥊 SEÇİM KARTLARI */}
         <View style={styles.selectionArena}>
-          {/* SOL KÖŞE: PLAYER 1 */}
           <TouchableOpacity style={styles.playerSelectCard} onPress={() => openSelectionModal(1)}>
             {player1 ? (
               <>
@@ -159,11 +152,8 @@ export default function CompareScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.vsCircle}>
-            <Text style={styles.vsText}>VS</Text>
-          </View>
+          <View style={styles.vsCircle}><Text style={styles.vsText}>VS</Text></View>
 
-          {/* SAĞ KÖŞE: PLAYER 2 */}
           <TouchableOpacity style={styles.playerSelectCard} onPress={() => openSelectionModal(2)}>
             {player2 ? (
               <>
@@ -180,16 +170,12 @@ export default function CompareScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 📊 KARŞILAŞTIRMA MATRİSİ */}
         {player1 && player2 ? (
           <View style={styles.matrixCard}>
-            <Text style={styles.matrixTitle}>Fiziksel & Teknik Kapışma</Text>
-            
-            {/* Sayısal Değerler (Grafikli) */}
+            <Text style={styles.matrixTitle}>Kıyaslama Matrisi</Text>
             {renderComparisonBar("POTANSİYEL (OVR)", player1.rating, player2.rating, player1.isGlobal, player2.isGlobal)}
             {renderComparisonBar("YAŞ", player1.age, player2.age, false, false, true)} 
             
-            {/* Metin ve Fiziksel Özellikler */}
             <View style={styles.textStatRow}>
                <View style={styles.textStatSide}><Text style={styles.textStatValue}>{player1.position}</Text></View>
                <Text style={styles.textStatLabel}>MEVKİ</Text>
@@ -207,63 +193,46 @@ export default function CompareScreen() {
                <Text style={styles.textStatLabel}>BOY</Text>
                <View style={styles.textStatSide}><Text style={styles.textStatValue}>{player2.height ? player2.height + ' cm' : '-'}</Text></View>
             </View>
-
-            <View style={styles.textStatRow}>
-               <View style={styles.textStatSide}><Text style={styles.textStatValue}>{player1.weight ? player1.weight + ' kg' : '-'}</Text></View>
-               <Text style={styles.textStatLabel}>KİLO</Text>
-               <View style={styles.textStatSide}><Text style={styles.textStatValue}>{player2.weight ? player2.weight + ' kg' : '-'}</Text></View>
-            </View>
           </View>
         ) : (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="sword-cross" size={60} color="#333" />
-            <Text style={styles.emptyStateText}>Analiz için her iki köşeye de oyuncu seçmelisin.</Text>
+            <Text style={styles.emptyStateText}>Analiz için her iki köşeye de birer aday yerleştirmelisin.</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* 📜 OYUNCU SEÇİM MODALI */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal visible={modalVisible} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Adayı Seç</Text>
+              <Text style={styles.modalTitle}>Aday Seçimi</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <MaterialCommunityIcons name="close-circle" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
-
             <TextInput 
               style={styles.searchInput} 
-              placeholder="Oyuncu ara..." 
+              placeholder="İsimle ara..." 
               placeholderTextColor="#7f8c8d"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
-
-            {loading ? <ActivityIndicator size="large" color="#3498db" style={{marginTop: 50}} /> : (
+            {loading ? <ActivityIndicator size="large" color="#3498db" /> : (
               <FlatList
                 data={filteredPlayers}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(_, index) => index.toString()}
                 renderItem={({ item }) => (
                   <TouchableOpacity style={styles.modalItem} onPress={() => selectPlayer(item)}>
                     <View>
                       <Text style={styles.modalItemName}>{item.name}</Text>
                       <Text style={styles.modalItemSub}>{item.position} • {item.team || 'Serbest'}</Text>
                     </View>
-                    
-                    {/* 🔥 MODAL İÇİNDE DÜNYA İKONU DESTEĞİ 🔥 */}
                     <View style={[styles.modalItemBadge, { backgroundColor: item.isGlobal ? '#2980b9' : '#34495e' }]}>
-                      {item.isGlobal ? (
-                         <MaterialCommunityIcons name="earth" size={20} color="#fff" />
-                      ) : (
-                         <Text style={styles.modalItemRating}>{item.rating}</Text>
-                      )}
+                      {item.isGlobal ? <MaterialCommunityIcons name="earth" size={20} color="#fff" /> : <Text style={styles.modalItemRating}>{item.rating}</Text>}
                     </View>
-
                   </TouchableOpacity>
                 )}
-                ListEmptyComponent={<Text style={{color: '#7f8c8d', textAlign: 'center', marginTop: 20}}>Oyuncu bulunamadı.</Text>}
               />
             )}
           </View>
@@ -275,44 +244,40 @@ export default function CompareScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  header: { padding: 20, paddingTop: 40, backgroundColor: '#1e1e1e', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#333' },
+  header: { padding: 20, paddingTop: Platform.OS === 'ios' ? 10 : 40, backgroundColor: '#1e1e1e', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#333' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 10 },
-  content: { padding: 20, paddingBottom: 100 },
+  content: { padding: 20 },
   selectionArena: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
-  playerSelectCard: { flex: 1, backgroundColor: '#1e1e1e', height: 140, borderRadius: 20, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', padding: 10 },
-  addText: { color: '#7f8c8d', fontSize: 13, marginTop: 10, fontWeight: 'bold' },
-  selectedName: { color: '#fff', fontSize: 15, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
-  selectedTeam: { color: '#bdc3c7', fontSize: 11, marginTop: 4, textAlign: 'center' },
-  vsCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1c40f', justifyContent: 'center', alignItems: 'center', marginHorizontal: -20, zIndex: 10, borderWidth: 3, borderColor: '#121212' },
-  vsText: { color: '#000', fontWeight: 'bold', fontSize: 14 },
-  
+  playerSelectCard: { flex: 1, backgroundColor: '#1e1e1e', height: 130, borderRadius: 20, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', padding: 10 },
+  addText: { color: '#555', fontSize: 12, marginTop: 8, fontWeight: 'bold' },
+  selectedName: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginTop: 8, textAlign: 'center' },
+  selectedTeam: { color: '#7f8c8d', fontSize: 10, marginTop: 2, textAlign: 'center' },
+  vsCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1c40f', justifyContent: 'center', alignItems: 'center', marginHorizontal: -18, zIndex: 10, borderWidth: 3, borderColor: '#121212' },
+  vsText: { color: '#000', fontWeight: 'bold', fontSize: 12 },
   matrixCard: { backgroundColor: '#1e1e1e', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#333' },
   matrixTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  statRow: { marginBottom: 20 },
-  statLabel: { color: '#95a5a6', fontSize: 11, fontWeight: 'bold', textAlign: 'center', marginBottom: 8, letterSpacing: 1 },
-  barContainer: { flexDirection: 'row', alignItems: 'center', height: 24 },
+  statRow: { marginBottom: 18 },
+  statLabel: { color: '#555', fontSize: 10, fontWeight: 'bold', textAlign: 'center', marginBottom: 6 },
+  barContainer: { flexDirection: 'row', alignItems: 'center', height: 20 },
   barSideLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   barSideRight: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
-  barDivider: { width: 2, height: '100%', backgroundColor: '#333', marginHorizontal: 10 },
-  barFill: { height: 8, borderRadius: 4 },
-  barValueText: { fontSize: 14, fontWeight: 'bold' },
-  
-  textStatRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2c2c2c' },
+  barDivider: { width: 1, height: '100%', backgroundColor: '#333', marginHorizontal: 10 },
+  barFill: { height: 6, borderRadius: 3 },
+  barValueText: { fontSize: 12, fontWeight: 'bold' },
+  textStatRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#2c2c2c' },
   textStatSide: { flex: 1, alignItems: 'center' },
-  textStatValue: { color: '#fff', fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
-  textStatLabel: { color: '#7f8c8d', fontSize: 10, width: 60, textAlign: 'center', fontWeight: 'bold' },
-
-  emptyState: { alignItems: 'center', marginTop: 40 },
-  emptyStateText: { color: '#555', marginTop: 15, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1e1e1e', height: '80%', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20 },
+  textStatValue: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  textStatLabel: { color: '#555', fontSize: 9, width: 60, textAlign: 'center', fontWeight: 'bold' },
+  emptyState: { alignItems: 'center', marginTop: 50 },
+  emptyStateText: { color: '#444', marginTop: 15, fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1e1e1e', height: '85%', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  searchInput: { backgroundColor: '#2c2c2c', color: '#fff', borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 15 },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  searchInput: { backgroundColor: '#2c2c2c', color: '#fff', borderRadius: 12, padding: 15, marginBottom: 15 },
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2c2c2c', padding: 15, borderRadius: 15, marginBottom: 10 },
-  modalItemName: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  modalItemSub: { color: '#95a5a6', fontSize: 12, marginTop: 4 },
-  modalItemBadge: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  modalItemRating: { color: '#fff', fontWeight: 'bold', fontSize: 14 }
+  modalItemName: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  modalItemSub: { color: '#7f8c8d', fontSize: 11, marginTop: 2 },
+  modalItemBadge: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  modalItemRating: { color: '#fff', fontWeight: 'bold', fontSize: 13 }
 });

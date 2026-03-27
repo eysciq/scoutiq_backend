@@ -1,41 +1,49 @@
 // Dosya Yolu: src/controllers/authController.ts
 import { Request, Response } from 'express';
-import prisma from '../config/db'; // Az önce kurduğumuz kileri (veritabanını) çağırıyoruz
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-// 1. KAYIT OLMA İŞLEMİ (Aşçı 1)
+const prisma = new PrismaClient();
+
+// 1. KAYIT OLMA İŞLEMİ (Şifreleme ve Skor eklendi)
 export const register = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
   try {
     const cleanEmail = String(email).trim().toLowerCase();
-    const existing = await prisma.user.findFirst({ where: { email: cleanEmail } });
     
-    if (existing) {
-      return res.status(400).json({ error: "Bu e-posta zaten kullanılıyor!" });
-    }
+    // Şifreyi bcrypt ile güvenli hale getiriyoruz
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     
-    await prisma.user.create({
-      data: { name, email: cleanEmail, password, isGlobal: false, discoveredBy: 'SCOUT_ACCOUNT' }
+    await prisma.user.create({ 
+      data: { 
+        email: cleanEmail, 
+        password: hashedPassword, 
+        scoutScore: 0, 
+        reportsCount: 0 
+      } 
     });
     
     res.status(200).json({ message: "Kayıt başarılı" });
-  } catch (error) {
-    res.status(500).json({ error: "Kayıt hatası." });
+  } catch (error) { 
+    res.status(400).json({ message: "E-posta kullanımda!" }); 
   }
 };
 
-// 2. GİRİŞ YAPMA İŞLEMİ (Aşçı 2)
+// 2. GİRİŞ YAPMA İŞLEMİ
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   try {
     const cleanEmail = String(email).trim().toLowerCase();
-    const user = await prisma.user.findFirst({ where: { email: cleanEmail, password } });
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
     
-    if (user) {
-      res.status(200).json({ message: "Giriş başarılı", name: user.name, email: user.email });
-    } else {
-      res.status(401).json({ error: "Hatalı giriş!" });
+    // Şifre çözme ve doğrulama
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ message: "Hatalı!" });
     }
-  } catch (error) {
-    res.status(500).json({ error: "Giriş hatası." });
+    
+    res.status(200).json({ message: "Başarılı", scoutScore: user.scoutScore, email: user.email });
+  } catch (error) { 
+    res.status(500).send(); 
   }
 };

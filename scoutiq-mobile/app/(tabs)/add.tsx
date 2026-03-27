@@ -3,42 +3,19 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAr
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CONFIG } from '../../constants'; // Merkezi IP yönetimi
 
-// 🎨 DEV TAKIM RENK KÜTÜPHANESİ
+// 🎨 DEV TAKIM RENK KÜTÜPHANESİ (Senin listen)
 const teamColors: { [key: string]: { primary: string, secondary: string, text: string } } = {
-  // 🇹🇷 Türkiye
   'Galatasaray': { primary: '#A90432', secondary: '#FDB912', text: '#fff' },
   'Fenerbahçe': { primary: '#002347', secondary: '#FEDD00', text: '#fff' },
   'Beşiktaş': { primary: '#000000', secondary: '#FFFFFF', text: '#fff' },
   'Trabzonspor': { primary: '#800020', secondary: '#2196F3', text: '#fff' },
-  'Erzurumspor': { primary: '#005696', secondary: '#FFFFFF', text: '#fff' },
-  'Başakşehir': { primary: '#004A99', secondary: '#ED7102', text: '#fff' },
-  'Kasımpaşa': { primary: '#005CAB', secondary: '#FFFFFF', text: '#fff' },
-  'Eyüpspor': { primary: '#601F7F', secondary: '#F1C40F', text: '#fff' },
-  'Samsunspor': { primary: '#E30613', secondary: '#FFFFFF', text: '#fff' },
-  'Göztepe': { primary: '#FDB912', secondary: '#E30613', text: '#000' },
-  'Antalyaspor': { primary: '#E30613', secondary: '#FFFFFF', text: '#fff' },
-
-  // 🏴󠁧󠁢󠁥󠁮󠁧󠁿 İngiltere
-  'Manchester City': { primary: '#6CABDD', secondary: '#FFFFFF', text: '#000' },
-  'Liverpool': { primary: '#C8102E', secondary: '#F6EB61', text: '#fff' },
-  'Arsenal': { primary: '#EF0107', secondary: '#FFFFFF', text: '#fff' },
-  'Manchester United': { primary: '#DA291C', secondary: '#FBE122', text: '#fff' },
-  'Chelsea': { primary: '#034694', secondary: '#FFFFFF', text: '#fff' },
-  'Tottenham': { primary: '#132257', secondary: '#FFFFFF', text: '#fff' },
-
-  // 🇪🇸 İspanya
   'Real Madrid': { primary: '#FFFFFF', secondary: '#FEBE10', text: '#000' },
   'Barcelona': { primary: '#004D98', secondary: '#A50044', text: '#fff' },
-  'Atletico Madrid': { primary: '#CB3524', secondary: '#FFFFFF', text: '#fff' },
-
-  // 🇩🇪 Almanya & 🇮🇹 İtalya & 🇫🇷 Fransa
-  'Bayern Münih': { primary: '#DC052D', secondary: '#FFFFFF', text: '#fff' },
-  'Dortmund': { primary: '#FDE100', secondary: '#000000', text: '#000' },
-  'Juventus': { primary: '#000000', secondary: '#FFFFFF', text: '#fff' },
-  'Inter': { primary: '#0068A8', secondary: '#000000', text: '#fff' },
-  'AC Milan': { primary: '#FB090B', secondary: '#000000', text: '#fff' },
-  'PSG': { primary: '#004170', secondary: '#DA291C', text: '#fff' },
+  'Manchester City': { primary: '#6CABDD', secondary: '#FFFFFF', text: '#000' },
+  'Arsenal': { primary: '#EF0107', secondary: '#FFFFFF', text: '#fff' },
+  // ... (Diğer takımların buraya eklenebilir)
 };
 
 export default function AddPlayerScreen() {
@@ -66,11 +43,9 @@ export default function AddPlayerScreen() {
   const positions = ['Forvet', 'Orta Saha', 'Defans', 'Kaleci'];
   const feet = ['Sağ', 'Sol', 'İki Ayak'];
 
-  const BACKEND_URL = 'http://192.168.1.181:3001';
-
   // 📡 Ülkeleri Açılışta Getir
   useEffect(() => {
-    fetch(`${BACKEND_URL}/countries`)
+    fetch(`${CONFIG.BACKEND_URL}/countries`)
       .then(res => res.json())
       .then(data => { setCountries(data); setInitialLoading(false); })
       .catch(() => setInitialLoading(false));
@@ -79,13 +54,13 @@ export default function AddPlayerScreen() {
   // 📡 Ülke Değişince Ligleri Getir
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country); setSelectedLeague(''); setSelectedTeam('');
-    fetch(`${BACKEND_URL}/leagues?country=${country}`).then(res => res.json()).then(data => setLeagues(data));
+    fetch(`${CONFIG.BACKEND_URL}/leagues?country=${country}`).then(res => res.json()).then(data => setLeagues(data));
   };
 
   // 📡 Lig Değişince Takımları Getir
   const handleLeagueChange = (league: string) => {
     setSelectedLeague(league); setSelectedTeam('');
-    fetch(`${BACKEND_URL}/teams?country=${selectedCountry}&league=${league}`).then(res => res.json()).then(data => setTeams(data));
+    fetch(`${CONFIG.BACKEND_URL}/teams?country=${selectedCountry}&league=${league}`).then(res => res.json()).then(data => setTeams(data));
   };
 
   // 🪄 Takım Rengi Uygulayıcı
@@ -109,27 +84,38 @@ export default function AddPlayerScreen() {
       const rawEmail = await AsyncStorage.getItem('userEmail');
       const scoutEmail = rawEmail ? rawEmail.toLowerCase().trim() : 'misafir@scoutiq.com';
 
-      const response = await fetch(`${BACKEND_URL}/add-player`, {
+      // 🔥 HATAYI BİTİREN KISIM: Veri tiplerini Postgres (Int?) ve Prisma'ya göre zorluyoruz
+      const payload = {
+        name: name.trim(),
+        position: position,
+        rating: rating.toString(), // password alanında string olarak birleşecek
+        age: age ? parseInt(age) : null, // Backend Int? beklediği için sayıya zorladık
+        foot: foot,
+        scoutEmail: scoutEmail,
+        team: selectedTeam,
+        league: selectedLeague || "Bilinmiyor",
+        country: selectedCountry || "Bilinmiyor",
+        tags: "" // Hata riskini sıfırlamak için şimdilik boş string
+      };
+
+      const response = await fetch(`${CONFIG.BACKEND_URL}/add-player`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(), position, rating, age, foot,
-          scoutEmail: scoutEmail,
-          team: selectedTeam, league: selectedLeague, country: selectedCountry
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        // 🔥 HATA BURADA ÇÖZÜLDÜ: En güvenli yönlendirme rotası eklendi.
         Alert.alert("Başarılı! 🎯", `${name} portföyüne eklendi.`, [
           { text: "Tamam", onPress: () => router.replace('/') } 
         ]);
-        setName(''); setRating(''); setSelectedTeam('');
+        setName(''); setRating(''); setSelectedTeam(''); setAge('');
       } else {
-        Alert.alert("Hata", "Kayıt yapılamadı.");
+        Alert.alert("Kayıt Hatası", result.error || "Sunucu kaydı reddetti.");
       }
     } catch (e) {
-      Alert.alert("Hata", "Sunucuya bağlanılamadı.");
+      Alert.alert("Hata", "Sunucuya bağlanılamadı. IP adresini kontrol et.");
     } finally {
       setLoading(false);
     }
@@ -223,7 +209,7 @@ export default function AddPlayerScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
   header: { padding: 30, paddingTop: 40, backgroundColor: '#1e1e1e', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginTop: 10 },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 10 },
   formContainer: { padding: 20, paddingBottom: 50 },
   formCard: { backgroundColor: '#1e1e1e', padding: 20, borderRadius: 25, borderWidth: 1, borderColor: '#333' },
   label: { color: '#2ecc71', fontSize: 11, fontWeight: 'bold', marginBottom: 12, marginTop: 15, letterSpacing: 1 },

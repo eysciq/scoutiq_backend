@@ -1,72 +1,77 @@
-import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, TouchableOpacity, View, Platform, SafeAreaView, Text } from 'react-native'; // Standard Text/View eklendi
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 
 export default function ModalScreen() {
   const router = useRouter();
 
   return (
-    <ThemedView style={styles.container}>
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+    <View style={styles.container}>
+      <StatusBar style="light" />
       
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="soccer-field" size={80} color="#2ecc71" />
-      </View>
-
-      <ThemedText type="title" style={styles.title}>
-        Scout<ThemedText style={{color: '#2ecc71'}} type="title">IQ</ThemedText>
-      </ThemedText>
-      <ThemedText style={styles.version}>Versiyon 1.0.4 (Beta)</ThemedText>
-
-      <View style={styles.separator} />
-
-      <View style={styles.infoBox}>
-        <ThemedText style={styles.description}>
-          ScoutIQ, geleceğin yıldızlarını keşfetmek ve profesyonel gözlem raporları tutmak için tasarlanmış üst düzey bir mobil platformdur.
-        </ThemedText>
-        
-        <View style={styles.featureRow}>
-          <MaterialCommunityIcons name="lightning-bolt" size={20} color="#f1c40f" />
-          <ThemedText style={styles.featureText}>Hızlı ve Akıllı Oyuncu Kaydı</ThemedText>
+      <SafeAreaView style={styles.content}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="soccer-field" size={80} color="#2ecc71" />
         </View>
-        <View style={styles.featureRow}>
-          <MaterialCommunityIcons name="chart-areaspline" size={20} color="#3498db" />
-          <ThemedText style={styles.featureText}>Detaylı Performans Analizi</ThemedText>
-        </View>
-        <View style={styles.featureRow}>
-          <MaterialCommunityIcons name="shield-check" size={20} color="#2ecc71" />
-          <ThemedText style={styles.featureText}>Profesyonel Portföy Yönetimi</ThemedText>
-        </View>
-      </View>
 
-      <View style={styles.footerContainer}>
-        <ThemedText style={styles.footer}>Developed by Erdem Şen</ThemedText>
-        <ThemedText style={styles.credits}>© 2026 ScoutIQ Pro Development</ThemedText>
-      </View>
+        <Text style={styles.title}>
+          Scout<Text style={{color: '#2ecc71'}}>IQ</Text>
+        </Text>
+        <Text style={styles.version}>Versiyon 1.0.4 (Beta)</Text>
 
-      <TouchableOpacity 
-        style={styles.closeButton} 
-        activeOpacity={0.8}
-        onPress={() => router.back()}
-      >
-        <MaterialCommunityIcons name="check-all" size={20} color="#000" style={{marginRight: 8}} />
-        <ThemedText style={styles.closeButtonText}>Anladım, Devam Et</ThemedText>
-      </TouchableOpacity>
-    </ThemedView>
+        <View style={styles.separator} />
+
+        <View style={styles.infoBox}>
+          <Text style={styles.description}>
+            ScoutIQ, geleceğin yıldızlarını keşfetmek ve profesyonel gözlem raporları tutmak için tasarlanmış üst düzey bir mobil platformdur.
+          </Text>
+          
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#f1c40f" />
+            <Text style={styles.featureText}>Hızlı ve Akıllı Oyuncu Kaydı</Text>
+          </View>
+          
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="chart-areaspline" size={20} color="#3498db" />
+            <Text style={styles.featureText}>Detaylı Performans Analizi</Text>
+          </View>
+          
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="shield-check" size={20} color="#2ecc71" />
+            <Text style={styles.featureText}>Profesyonel Portföy Yönetimi</Text>
+          </View>
+        </View>
+
+        <View style={styles.footerContainer}>
+          <Text style={styles.footer}>Developed by Erdem Şen</Text>
+          <Text style={styles.credits}>© 2026 ScoutIQ Pro Development</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          activeOpacity={0.8}
+          onPress={() => router.back()}
+        >
+          <MaterialCommunityIcons name="check-all" size={20} color="#000" style={{marginRight: 8}} />
+          <Text style={styles.closeButtonText}>Anladım, Devam Et</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#121212',
+  },
+  content: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 30,
-    backgroundColor: '#121212', // Temayı index.tsx ile eşitledim
   },
   iconContainer: {
     marginBottom: 20,
@@ -75,11 +80,17 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 1,
     borderColor: '#333',
-    elevation: 10,
-    shadowColor: '#2ecc71',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#2ecc71',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
   title: {
     fontSize: 36,
@@ -153,7 +164,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    elevation: 5,
   },
   closeButtonText: {
     color: '#000',
