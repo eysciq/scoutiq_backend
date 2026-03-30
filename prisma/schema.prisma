@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,37 +8,41 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  name          String?  
-  email         String   @unique
-  password      String?  // 👈 BURAYI OPSİYONEL (?) YAPTIK, HATA BURADAN GELİYORDU
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt // 👈 Burayı standart hale getirdik
+  id                    String       @id @default(uuid())
+  email                 String       @unique
+  password              String
+  name                  String
+  totalScoutScore       Float        @default(0)
+  weeklyScore           Float        @default(0)
+  successfulPredictions Int          @default(0)
+  createdAt             DateTime     @default(now())
+  
+  predictions           Prediction[]
+  
+  @@index([totalScoutScore(sort: Desc), successfulPredictions(sort: Desc)])
+}
 
-  scoutScore    Int      @default(0)
-  reportsCount  Int      @default(0)
+model Player {
+  id           String       @id @default(uuid())
+  externalId   Int          @unique
+  name         String
+  position     String
+  team         String
+  predictions  Prediction[]
+}
 
-  // --- 🏃 FİZİKSEL ÖZELLİKLER ---
-  age           Int?
-  height        Int?
-  weight        Int?
-  foot          String?
+model Prediction {
+  id              String   @id @default(uuid())
+  userId          String
+  playerId        String
+  predictedAt     DateTime @default(now())
+  isVisible       Boolean  @default(false)
+  hasScoutBadge   Boolean  @default(false)
+  pointsEarned    Float    @default(0)
+  isProcessed     Boolean  @default(false)
 
-  // --- 🌍 LİG VE TAKIM BİLGİLERİ ---
-  country       String?
-  league        String?
-  team          String?
+  user            User     @relation(fields: [userId], references: [id])
+  player          Player   @relation(fields: [playerId], references: [id])
 
-  // --- 🕵️ SCOUT SİSTEMİ ---
-  discoveredBy  String?
-
-  // --- 🏷️ SCOUT ETİKETLERİ ---
-  tags          String?  
-
-  // --- 🏆 GLOBAL YAYIN SİSTEMİ ---
-  isGlobal      Boolean  @default(false)
-  isVerified    Boolean  @default(false)
-
-  @@index([discoveredBy])
-  @@index([email])
+  @@unique([userId, playerId])
 }

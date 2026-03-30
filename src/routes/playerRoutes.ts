@@ -1,41 +1,28 @@
+// src/routes/playerRoutes.ts
 import { Router } from 'express';
-import { 
-  addPlayer, 
-  getPlayers, 
-  getGlobalPlayers, 
-  getPlayerDetails, 
-  updatePlayer, 
-  deletePlayer, 
-  getMyProfile, 
-  getLeaderboard, 
-  syncPlayers 
-} from '../controllers/playerController';
+import * as playerController from '../controllers/playerController';
 
-const router: Router = Router();
+const router = Router();
 
-// ➕ Yeni Oyuncu Raporu Ekle
-router.post('/add-player', addPlayer);
+// İstek gelip gelmediğini terminalde görmek için bir ajan (middleware) koyuyoruz
+router.use((req, res, next) => {
+  console.log(`📡 Mobil Uygulamadan İstek Geldi: ${req.method} ${req.originalUrl}`);
+  next();
+});
 
-// 📋 Kendi Portföyüm
-router.get('/players', getPlayers);
+// 🌍 Keşfet (Global Radar) Ekranı
+router.get('/global-players', playerController.getGlobalPlayers);
 
-// 🌍 Keşfet / Radar (İsmi düzelttik)
-router.get('/global-players', getGlobalPlayers); 
+// 📋 Portföyüm Ekranı
+router.get('/players', playerController.getPlayers);
 
-// 🔍 Tekil Oyuncu Detayları
-router.get('/player-details/:id', getPlayerDetails);
+// 🔍 Detay Ekranı
+router.get('/player-details/:id', playerController.getPlayerDetails);
 
-// 🔄 Rapor Güncelleme
-router.put('/update-player/:id', updatePlayer);
-
-// 🗑️ Rapor Silme
-router.delete('/delete-player/:id', deletePlayer);
-
-/**
- * 🏆 SCOUT İSTATİSTİKLERİ
- */
-router.get('/my-profile', getMyProfile);
-router.get('/leaderboard', getLeaderboard);
-router.get('/sync-api', syncPlayers);
+// Diğer eski rotalar (Uygulama çökmesin diye boş dönüyorlar)
+router.put('/update-player/:id', playerController.updatePlayer);
+router.delete('/delete-player/:id', playerController.deletePlayer);
+router.get('/my-profile', playerController.getMyProfile);
+router.get('/leaderboard', playerController.getLeaderboard);
 
 export default router;

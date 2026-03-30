@@ -8,7 +8,6 @@ declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-// 🛡️ Singleton Yapısı: Eğer daha önce oluşturulmuşsa onu kullan, yoksa yeni oluştur.
 const prisma = globalThis.prisma ?? prismaClientSingleton();
 
 export default prisma;

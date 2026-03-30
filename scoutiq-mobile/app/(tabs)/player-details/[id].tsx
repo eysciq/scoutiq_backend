@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { CONFIG, TEAM_COLORS } from '../../constants';
+import { CONFIG, TEAM_COLORS } from '../../../constants';
 
 export default function PlayerDetailsScreen() {
   const { id } = useLocalSearchParams();

@@ -1,49 +1,67 @@
-// Dosya Yolu: src/controllers/authController.ts
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import prisma from '../config/db';
 
-const prisma = new PrismaClient();
-
-// 1. KAYIT OLMA İŞLEMİ (Şifreleme ve Skor eklendi)
-export const register = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const cleanEmail = String(email).trim().toLowerCase();
-    
-    // Şifreyi bcrypt ile güvenli hale getiriyoruz
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    await prisma.user.create({ 
-      data: { 
-        email: cleanEmail, 
-        password: hashedPassword, 
-        scoutScore: 0, 
-        reportsCount: 0 
-      } 
+    const { email, password, name } = req.body;
+
+    // Email kullanımda mı kontrolü
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ error: "Bu email adresi zaten kullanılıyor." });
+      return;
+    }
+
+    // Yeni kullanıcıyı oluştur (totalScoutScore ve successfulPredictions Prisma şemasında @default(0) olduğu için burada yazmamıza gerek yok, otomatik 0 atanır)
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password, // İleride buraya bcrypt ekleyeceğiz, şimdilik düz tutuyoruz
+        name
+      }
     });
-    
-    res.status(200).json({ message: "Kayıt başarılı" });
-  } catch (error) { 
-    res.status(400).json({ message: "E-posta kullanımda!" }); 
+
+    res.status(201).json({
+      message: "Kayıt başarılı!",
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        totalScoutScore: newUser.totalScoutScore,
+        successfulPredictions: newUser.successfulPredictions
+      }
+    });
+  } catch (error: any) {
+    console.error("❌ Kayıt Hatası:", error);
+    res.status(500).json({ error: "Sunucu hatası oluştu." });
   }
 };
 
-// 2. GİRİŞ YAPMA İŞLEMİ
-export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const cleanEmail = String(email).trim().toLowerCase();
-    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    
-    // Şifre çözme ve doğrulama
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Hatalı!" });
+    const { email, password } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user || user.password !== password) {
+      res.status(401).json({ error: "Hatalı email veya şifre." });
+      return;
     }
-    
-    res.status(200).json({ message: "Başarılı", scoutScore: user.scoutScore, email: user.email });
-  } catch (error) { 
-    res.status(500).send(); 
+
+    // Başarılı girişte dönecek veriler
+    res.status(200).json({
+      message: "Giriş başarılı!",
+      token: "gecici-jwt-token-123", // İleride burayı gerçek JWT yapacağız
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        totalScoutScore: user.totalScoutScore, // <-- Hata veren yer burasıydı, düzelttik
+        successfulPredictions: user.successfulPredictions
+      }
+    });
+  } catch (error: any) {
+    console.error("❌ Giriş Hatası:", error);
+    res.status(500).json({ error: "Sunucu hatası oluştu." });
   }
 };

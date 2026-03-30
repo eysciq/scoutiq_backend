@@ -22,35 +22,20 @@ export default function RootLayout() {
         {/* 🚪 BEKÇİ / KONTROL SAYFASI */}
         <Stack.Screen name="index" />
         
-        {/* 🔐 GİRİŞ & KAYIT SİSTEMİ */}
-        <Stack.Screen name="login" />
+        {/* 🔐 GİRİŞ & KAYIT SİSTEMİ (auth klasörü) */}
+        <Stack.Screen name="auth" />
         
-        {/* ⚽ ANA TAB SİSTEMİ (Portföy, Keşfet, Profil) */}
+        {/* ⚽ ANA TAB SİSTEMİ (Portföy, Keşfet, Profil ve Alt Sayfalar) */}
         <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
         
-        {/* 📝 OYUNCU DÜZENLEME & CLONE SAYFASI */}
+        {/* 📝 MODAL (Eğer genel bir modal kullanıyorsan) */}
         <Stack.Screen 
-          name="edit-player" 
+          name="modal" 
           options={{ 
-            presentation: 'modal', // Alttan açılan şık bir modal efekti
+            presentation: 'modal', 
             animation: 'slide_from_bottom' 
           }} 
         />
-
-        {/* 🔍 OYUNCU DETAY SAYFASI */}
-        <Stack.Screen 
-          name="player-details/[id]" 
-          options={{ 
-            presentation: 'card', 
-            animation: 'slide_from_right' 
-          }} 
-        />
-        
-        {/* 🏆 LİDERLİK TABLOSU (Eğer ayrı sayfaysa) */}
-        <Stack.Screen name="leaderboard" options={{ presentation: 'modal' }} />
-
-        {/* ❌ HATA SAYFASI */}
-        <Stack.Screen name="+not-found" options={{ presentation: 'transparentModal' }} />
         
       </Stack>
     </ThemeProvider>

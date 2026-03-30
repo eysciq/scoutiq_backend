@@ -1,4 +1,3 @@
-// Dosya Yolu: app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -86,10 +85,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 🛡️ GİZLİ ROTALAR (Menüde Görünmezler) */}
-      <Tabs.Screen name="radar" options={{ href: null }} /> 
+      {/* 🛡️ GİZLİ ROTALAR (Menüde Görünmezler ama sistemde varlar) */}
       <Tabs.Screen name="edit-player" options={{ href: null }} />
-      <Tabs.Screen name="player-details" options={{ href: null }} />
+      
+      {/* 👇 İŞTE BURASI DÜZELTİLDİ 👇 */}
+      <Tabs.Screen name="player-details/[id]" options={{ href: null }} />
       
     </Tabs>
   );
