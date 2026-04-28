@@ -11,29 +11,28 @@ export default function AppGatekeeper() {
 
     const checkLoginStatus = async () => {
       try {
+        // 🔍 Hafızada kayıtlı e-posta var mı bakıyoruz
         const email = await AsyncStorage.getItem('userEmail');
         
         if (!isMounted) return;
 
-        if (email && email !== "") {
-          // ✅ Giriş varsa (tabs) altına git
-          // Eğer hata verirse router.replace('/(tabs)' as any) yapabilirsin
+        if (email && email.trim() !== "") {
+          // ✅ Giriş yapılmış, ana menüye (tabs) fırlat
           router.replace('/(tabs)');
         } else {
-          // ❌ HATA BURADAYDI: Senin projen /auth bekliyor
-          // TypeScript hatasını zorla aşmak için 'as any' ekledik 
-          // Ama en doğrusu senin auth dosyanın adını kontrol etmektir
-          router.replace('/auth' as any);
+          // ❌ Giriş yok, giriş ekranına (auth) fırlat
+          router.replace('/auth');
         }
       } catch (error) {
         if (isMounted) {
           console.error("Giriş kontrol hatası:", error);
-          router.replace('/auth' as any);
+          router.replace('/auth');
         }
       }
     };
 
-    const timer = setTimeout(checkLoginStatus, 500);
+    // 🚀 Splash screen hissi vermek ve sistemin oturmasını beklemek için kısa bir gecikme
+    const timer = setTimeout(checkLoginStatus, 800);
     
     return () => {
       isMounted = false;
@@ -44,17 +43,34 @@ export default function AppGatekeeper() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      {/* 🟢 Ana Yükleyici */}
       <ActivityIndicator size="large" color="#2ecc71" />
+      
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#555" style={{ marginBottom: 10 }} />
-        <Text style={styles.footerText}>ScoutIQ Sistemleri Yükleniyor...</Text>
+        <Text style={styles.footerText}>SCOUTIQ GÜVENLİK KONTROLÜ</Text>
+        <ActivityIndicator size="small" color="#333" style={{ marginTop: 10 }} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' },
-  footer: { position: 'absolute', bottom: 50, alignItems: 'center' },
-  footerText: { color: '#555', fontSize: 12, letterSpacing: 1, fontWeight: '600' }
+  container: { 
+    flex: 1, 
+    backgroundColor: '#121212', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  footer: { 
+    position: 'absolute', 
+    bottom: 60, 
+    alignItems: 'center' 
+  },
+  footerText: { 
+    color: '#333', 
+    fontSize: 10, 
+    letterSpacing: 2, 
+    fontWeight: '800' 
+  }
 });

@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, ScrollView, StatusBar, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// 📡 Backend URL
-const BACKEND_URL = 'http://192.168.1.181:3001';
+import { CONFIG } from '../../constants';
 
 export default function CompareScreen() {
   const [loading, setLoading] = useState(false);
@@ -26,8 +24,8 @@ export default function CompareScreen() {
       const safeEmail = email ? encodeURIComponent(email.toLowerCase().trim()) : '';
 
       const [myRes, globalRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/players?scoutEmail=${safeEmail}`),
-        fetch(`${BACKEND_URL}/global-players`)
+        fetch(`${CONFIG.BACKEND_URL}/players?scoutEmail=${safeEmail}`), 
+        fetch(`${CONFIG.BACKEND_URL}/global-players`) 
       ]);
 
       const myData = myRes.ok ? await myRes.json() : [];
@@ -71,7 +69,6 @@ export default function CompareScreen() {
 
   // 📊 Kıyaslama Çubukları
   const renderComparisonBar = (label: string, val1: any, val2: any, isGlobal1: boolean, isGlobal2: boolean, isLowerBetter = false) => {
-    // Özel Durum: Global oyuncu reytingi
     if (label === "POTANSİYEL (OVR)" && (isGlobal1 || isGlobal2)) {
       return (
         <View style={styles.statRow}>
@@ -202,7 +199,7 @@ export default function CompareScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={modalVisible} animationType="fade" transparent={true}>
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -211,17 +208,23 @@ export default function CompareScreen() {
                 <MaterialCommunityIcons name="close-circle" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
-            <TextInput 
-              style={styles.searchInput} 
-              placeholder="İsimle ara..." 
-              placeholderTextColor="#7f8c8d"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {loading ? <ActivityIndicator size="large" color="#3498db" /> : (
+            
+            <View style={styles.searchWrapper}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#7f8c8d" style={styles.searchIcon} />
+              <TextInput 
+                style={styles.searchInput} 
+                placeholder="İsimle ara..." 
+                placeholderTextColor="#7f8c8d"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            {loading ? <ActivityIndicator size="large" color="#3498db" style={{marginTop: 20}} /> : (
               <FlatList
                 data={filteredPlayers}
                 keyExtractor={(_, index) => index.toString()}
+                showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
                   <TouchableOpacity style={styles.modalItem} onPress={() => selectPlayer(item)}>
                     <View>
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
   vsCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1c40f', justifyContent: 'center', alignItems: 'center', marginHorizontal: -18, zIndex: 10, borderWidth: 3, borderColor: '#121212' },
   vsText: { color: '#000', fontWeight: 'bold', fontSize: 12 },
   matrixCard: { backgroundColor: '#1e1e1e', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#333' },
-  matrixTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  matrixTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, letterSpacing: 1 },
   statRow: { marginBottom: 18 },
   statLabel: { color: '#555', fontSize: 10, fontWeight: 'bold', textAlign: 'center', marginBottom: 6 },
   barContainer: { flexDirection: 'row', alignItems: 'center', height: 20 },
@@ -274,7 +277,9 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: '#1e1e1e', height: '85%', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  searchInput: { backgroundColor: '#2c2c2c', color: '#fff', borderRadius: 12, padding: 15, marginBottom: 15 },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2c2c2c', borderRadius: 12, paddingHorizontal: 15, marginBottom: 15 },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, color: '#fff', paddingVertical: 15, fontSize: 15 },
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2c2c2c', padding: 15, borderRadius: 15, marginBottom: 10 },
   modalItemName: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   modalItemSub: { color: '#7f8c8d', fontSize: 11, marginTop: 2 },

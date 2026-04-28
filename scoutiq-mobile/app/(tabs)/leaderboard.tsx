@@ -2,9 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, FlatList, ActivityIndicator, RefreshControl, StatusBar, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-
-// 📡 Backend IP'ni buraya sabitleyebilirsin
-const BACKEND_URL = 'http://192.168.1.181:3001';
+// 🔥 DÜZELTME: Dinamik CONFIG yapısı eklendi
+import { CONFIG } from '../../constants';
 
 export default function LeaderboardScreen() {
   const [scouts, setScouts] = useState<any[]>([]);
@@ -14,7 +13,7 @@ export default function LeaderboardScreen() {
   // 📡 LİDERLİK VERİLERİNİ ÇEK
   const fetchLeaderboard = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/leaderboard`);
+      const response = await fetch(`${CONFIG.BACKEND_URL}/leaderboard`);
       if (response.ok) {
         const data = await response.json();
         setScouts(data);
@@ -38,7 +37,6 @@ export default function LeaderboardScreen() {
     fetchLeaderboard();
   };
 
-  // 🥇 İLK 3 KİŞİYE ÖZEL RENKLER
   const getMedalColor = (index: number) => {
     if (index === 0) return '#f1c40f'; // Altın
     if (index === 1) return '#bdc3c7'; // Gümüş
@@ -46,25 +44,32 @@ export default function LeaderboardScreen() {
     return '#34495e'; 
   };
 
+  const getMedalBackground = (index: number) => {
+    if (index === 0) return 'rgba(241, 196, 15, 0.08)'; 
+    if (index === 1) return 'rgba(189, 195, 199, 0.08)'; 
+    if (index === 2) return 'rgba(205, 127, 50, 0.08)'; 
+    return '#1e1e1e';
+  };
+
   const renderScout = ({ item, index }: { item: any; index: number }) => {
     const isTopThree = index < 3;
     const medalColor = getMedalColor(index);
+    const bgColor = getMedalBackground(index);
 
     return (
       <View style={[
         styles.card, 
+        { backgroundColor: bgColor },
         isTopThree && { ...styles.topThreeCard, borderColor: medalColor }
       ]}>
-        {/* SIRA NUMARASI VEYA MADALYA */}
         <View style={styles.rankContainer}>
           {isTopThree ? (
-            <MaterialCommunityIcons name="medal" size={32} color={medalColor} />
+            <MaterialCommunityIcons name="medal" size={36} color={medalColor} />
           ) : (
             <Text style={styles.rankText}>{index + 1}</Text>
           )}
         </View>
 
-        {/* SCOUT BİLGİLERİ */}
         <View style={styles.infoContainer}>
           <Text style={[styles.nameText, isTopThree && { color: medalColor }]}>
             {item.name ? item.name.toUpperCase() : "BİLİNMEYEN SCOUT"}
@@ -72,7 +77,6 @@ export default function LeaderboardScreen() {
           <Text style={styles.statsText}>{item.count || 0} Oyuncu Raporladı</Text>
         </View>
 
-        {/* PUAN */}
         <View style={styles.scoreBadge}>
           <Text style={styles.scoreText}>{item.score || 0}</Text>
           <Text style={styles.ptsText}>PTS</Text>
@@ -83,16 +87,14 @@ export default function LeaderboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#1e1e1e" />
       
-      {/* 🏆 ÜST BAŞLIK */}
       <View style={styles.header}>
-        <MaterialCommunityIcons name="trophy-award" size={50} color="#f1c40f" />
+        <MaterialCommunityIcons name="trophy-award" size={55} color="#f1c40f" style={{ marginBottom: 5 }} />
         <Text style={styles.headerTitle}>Liderlik Tablosu</Text>
         <Text style={styles.headerSubtitle}>En iyiler zirvede yer alır.</Text>
       </View>
 
-      {/* 📋 LİSTE */}
       {loading && !refreshing ? (
         <View style={styles.center}><ActivityIndicator size="large" color="#f1c40f" /></View>
       ) : (
@@ -101,6 +103,7 @@ export default function LeaderboardScreen() {
           keyExtractor={(item, index) => index.toString()}
           renderItem={renderScout}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f1c40f" />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -125,29 +128,26 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 40, 
     borderBottomRightRadius: 40, 
     alignItems: 'center', 
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    elevation: 10,
+    zIndex: 10
   },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 10 },
-  headerSubtitle: { fontSize: 14, color: '#95a5a6', marginTop: 5 },
-  listContainer: { padding: 20, paddingBottom: 40 },
-  card: { flexDirection: 'row', backgroundColor: '#1e1e1e', borderRadius: 20, padding: 15, marginBottom: 15, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
+  headerSubtitle: { fontSize: 14, color: '#f1c40f', marginTop: 5, fontWeight: '600' },
+  listContainer: { padding: 20, paddingBottom: 100 },
+  card: { flexDirection: 'row', borderRadius: 20, padding: 18, marginBottom: 15, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
   topThreeCard: { 
-    backgroundColor: '#1c2833', 
-    transform: [{ scale: 1.03 }],
-    elevation: 8,
+    transform: [{ scale: 1.02 }],
+    elevation: 5,
   },
-  rankContainer: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  rankText: { color: '#7f8c8d', fontSize: 20, fontWeight: 'bold' },
+  rankContainer: { width: 45, alignItems: 'center', justifyContent: 'center' },
+  rankText: { color: '#7f8c8d', fontSize: 22, fontWeight: 'bold' },
   infoContainer: { flex: 1, marginLeft: 15 },
-  nameText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  statsText: { color: '#95a5a6', fontSize: 12, marginTop: 4 },
-  scoreBadge: { alignItems: 'flex-end' },
-  scoreText: { color: '#2ecc71', fontSize: 22, fontWeight: 'bold' },
-  ptsText: { color: '#7f8c8d', fontSize: 10, fontWeight: 'bold' },
+  nameText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.5 },
+  statsText: { color: '#95a5a6', fontSize: 12, marginTop: 4, fontWeight: '500' },
+  scoreBadge: { alignItems: 'flex-end', backgroundColor: 'rgba(46, 204, 113, 0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  scoreText: { color: '#2ecc71', fontSize: 22, fontWeight: '900' },
+  ptsText: { color: '#2ecc71', fontSize: 10, fontWeight: 'bold', marginTop: -2 },
+  // 🔥 EKSİK OLAN STİLLER EKLENDİ - ARTIK HATA VERMEYECEK
   emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
   emptyTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 20 },
   emptyText: { color: '#7f8c8d', fontSize: 15, textAlign: 'center', marginTop: 10, lineHeight: 22 }

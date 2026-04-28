@@ -1,27 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StatusBar, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ YENİ PAKET BURADA
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CONFIG } from '../../constants';
-
-// 🎨 DEV TAKIM RENK KÜTÜPHANESİ
-const teamColors: { [key: string]: { primary: string, secondary: string, text: string } } = {
-  'Galatasaray': { primary: '#A90432', secondary: '#FDB912', text: '#fff' },
-  'Fenerbahçe': { primary: '#002347', secondary: '#FEDD00', text: '#fff' },
-  'Beşiktaş': { primary: '#000000', secondary: '#FFFFFF', text: '#fff' },
-  'Trabzonspor': { primary: '#800020', secondary: '#2196F3', text: '#fff' },
-  'Real Madrid': { primary: '#FFFFFF', secondary: '#FEBE10', text: '#000' },
-  'Barcelona': { primary: '#004D98', secondary: '#A50044', text: '#fff' },
-  'Manchester City': { primary: '#6CABDD', secondary: '#FFFFFF', text: '#000' },
-  'Arsenal': { primary: '#EF0107', secondary: '#FFFFFF', text: '#fff' },
-};
 
 export default function AddPlayerScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [userRights, setUserRights] = useState(0); // 📅 Haftalık Kalan Hak
 
   // Form Verileri
   const [name, setName] = useState('');
@@ -29,213 +18,203 @@ export default function AddPlayerScreen() {
   const [rating, setRating] = useState('');
   const [age, setAge] = useState('');
   const [foot, setFoot] = useState('Sağ');
-
-  // Dinamik Listeler
-  const [countries, setCountries] = useState<string[]>([]);
-  const [leagues, setLeagues] = useState<string[]>([]);
-  const [teams, setTeams] = useState<string[]>([]);
-
-  // Seçili Değerler
-  const [selectedCountry, setSelectedCountry] = useState('');
-  const [selectedLeague, setSelectedLeague] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTeam, setSelectedTeam] = useState('');
 
-  const positions = ['Forvet', 'Orta Saha', 'Defans', 'Kaleci'];
-  const feet = ['Sağ', 'Sol', 'İki Ayak'];
-
-  // 📡 Ülkeleri Açılışta Getir
-  useEffect(() => {
-    fetch(`${CONFIG.BACKEND_URL}/countries`)
-      .then(res => res.json())
-      .then(data => { setCountries(data); setInitialLoading(false); })
-      .catch(() => setInitialLoading(false));
-  }, []);
-
-  const handleCountryChange = (country: string) => {
-    setSelectedCountry(country); setSelectedLeague(''); setSelectedTeam('');
-    fetch(`${CONFIG.BACKEND_URL}/leagues?country=${country}`).then(res => res.json()).then(data => setLeagues(data));
-  };
-
-  const handleLeagueChange = (league: string) => {
-    setSelectedLeague(league); setSelectedTeam('');
-    fetch(`${CONFIG.BACKEND_URL}/teams?country=${selectedCountry}&league=${league}`).then(res => res.json()).then(data => setTeams(data));
-  };
-
-  const getTeamButtonStyle = (tName: string) => {
-    if (selectedTeam !== tName) return styles.teamBtn;
-    const colors = teamColors[tName];
-    if (colors) {
-      return [styles.teamBtn, { backgroundColor: colors.primary, borderColor: colors.secondary, borderWidth: 2.5 }];
+  // 1. Kullanıcının Kalan Hakkını Çek (Sayfa her açıldığında)
+  const fetchUserRights = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const response = await fetch(`${CONFIG.BACKEND_URL}/user-profile/${userId}`);
+      const data = await response.json();
+      setUserRights(data.weeklyPredictionsLeft);
+    } catch (e) {
+      console.error("Hak bilgisi çekilemedi.");
+    } finally {
+      setInitialLoading(false);
     }
-    return [styles.teamBtn, styles.teamBtnActive];
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserRights();
+    }, [])
+  );
+
+  // Etiket Seçme Fonksiyonu (Maksimum 3 adet)
+  const toggleTag = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      if (selectedTags.length < 3) setSelectedTags([...selectedTags, tag]);
+      else Alert.alert("Sınır", "En fazla 3 scout etiketi seçebilirsiniz.");
+    }
   };
 
   const handleSave = async () => {
     if (!name.trim() || !rating || !selectedTeam) {
-      Alert.alert("Eksik Bilgi", "Lütfen en azından İsim, Takım ve Reyting girin.");
+      Alert.alert("Eksik Bilgi", "İsim, Takım ve Reyting zorunludur.");
       return;
     }
 
     setLoading(true);
     try {
-      const rawEmail = await AsyncStorage.getItem('userEmail');
-      const scoutEmail = rawEmail ? rawEmail.toLowerCase().trim() : 'misafir@scoutiq.com';
-
-      // 🔥 DÜZELTME: Prisma'nın çökmemesi için sayısal değerleri NUMBER tipine çeviriyoruz
+      const userId = await AsyncStorage.getItem('userId');
+      
       const payload = {
+        userId: userId,
         name: name.trim(),
-        position: position,
-        rating: parseInt(rating) || 0, // String yerine Integer gönderiyoruz
-        age: age ? parseInt(age) : null,
-        foot: foot,
-        scoutEmail: scoutEmail,
+        position,
+        rating: parseInt(rating),
+        age: parseInt(age),
+        foot,
         team: selectedTeam,
-        league: selectedLeague || "Bilinmiyor",
-        country: selectedCountry || "Bilinmiyor",
-        tags: "" 
+        tags: selectedTags
       };
 
-      const response = await fetch(`${CONFIG.BACKEND_URL}/add-player`, {
+      // 🔥 ARTIK SCOUT ENDPOINT'İNE GİDİYORUZ
+      const response = await fetch(`${CONFIG.BACKEND_URL}/scout-player`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      // 🔥 DÜZELTME: Backend JSON dönmezse uygulamanın çökmesini engelliyoruz
-      let result;
-      const textResponse = await response.text();
-      try {
-        result = JSON.parse(textResponse);
-      } catch (e) {
-        result = { error: "Sunucu geçerli bir yanıt veremedi (Veritabanı hatası olabilir)." };
-      }
+      const result = await response.json();
 
-      if (response.ok) {
-        Alert.alert("Başarılı! 🎯", `${name} portföyüne eklendi.`, [
-          { text: "Tamam", onPress: () => router.replace('/') } 
-        ]);
-        // Formu temizle
-        setName(''); setRating(''); setSelectedTeam(''); setAge(''); setSelectedCountry(''); setSelectedLeague('');
+      if (response.status === 201) {
+        // BAŞARILI KEŞİF (HAK VARDI)
+        Alert.alert(
+          "Müthiş Keşif! 🎯", 
+          `Bu oyuncuyu dünyada ilk bulan ${result.multiplier === 5 ? 'VİZYONER' : result.discoveryOrder + '.'} kişisin!`,
+          [{ text: "Portföye Git", onPress: () => router.replace('/index') }]
+        );
+      } else if (response.status === 403) {
+        // ⛔ HAK BİTTİ - NOT DEFTERİ YÖNLENDİRMESİ
+        Alert.alert(
+          "Haftalık Hakkın Doldu!",
+          "Bu oyuncuyu kaybetmek istemiyorsan Not Defterine kaydedelim mi?",
+          [
+            { text: "Vazgeç", style: 'cancel' },
+            { text: "Not Defterine Ekle", onPress: () => handleSaveToNotebook(payload) }
+          ]
+        );
       } else {
-        Alert.alert("Kayıt Hatası", result.error || result.message || "Sunucu kaydı reddetti.");
+        Alert.alert("Hata", result.error || "Bir şeyler ters gitti.");
       }
     } catch (e) {
-      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. IP adresinizi kontrol edin.");
+      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveToNotebook = async (payload: any) => {
+    try {
+      await fetch(`${CONFIG.BACKEND_URL}/save-notebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      router.replace('/notebook');
+    } catch (e) {
+      Alert.alert("Hata", "Not defterine kaydedilemedi.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1e1e1e" />
+      <StatusBar barStyle="light-content" />
+      
+      {/* HEADER + HAK GÖSTERGESİ */}
       <View style={styles.header}>
-        <MaterialCommunityIcons name="soccer" size={40} color="#2ecc71" />
-        <Text style={styles.headerTitle}>Yeni Yetenek Raporu</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Yeni Keşif</Text>
+          <View style={[styles.rightsBadge, { backgroundColor: userRights > 0 ? '#2ecc71' : '#e74c3c' }]}>
+            <Text style={styles.rightsText}>{userRights}/2 HAK</Text>
+          </View>
+        </View>
+        <Text style={styles.headerSub}>Nijerya'dan Real Madrid'e uzanan yol burada başlar.</Text>
       </View>
 
-      {initialLoading ? (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <ActivityIndicator size="large" color="#2ecc71" />
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.formCard}>
-            <Text style={styles.label}>OYUNCU ADI</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="account" size={20} color="#95a5a6" style={{marginRight: 10}} />
-              <TextInput style={styles.input} placeholder="Ad Soyad" placeholderTextColor="#7f8c8d" value={name} onChangeText={setName} />
+      <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.formCard}>
+          <Text style={styles.label}>OYUNCU ADI</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Örn: Arda Güler" 
+            placeholderTextColor="#555" 
+            value={name} 
+            onChangeText={setName} 
+          />
+
+          <View style={styles.row}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.label}>REYTING (0-99)</Text>
+              <TextInput 
+                style={styles.input} 
+                keyboardType="numeric" 
+                value={rating} 
+                onChangeText={setRating} 
+              />
             </View>
-
-            <Text style={styles.label}>ÜLKE VE LİG</Text>
-            <View style={styles.chipRow}>
-              {countries.map(c => (
-                <TouchableOpacity key={c} style={[styles.chip, selectedCountry === c && styles.chipActive]} onPress={() => handleCountryChange(c)}>
-                  <Text style={[styles.chipText, selectedCountry === c && styles.chipTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {selectedCountry ? (
-              <View style={[styles.chipRow, { marginTop: 10 }]}>
-                {leagues.map(l => (
-                  <TouchableOpacity key={l} style={[styles.chip, selectedLeague === l && styles.chipActive]} onPress={() => handleLeagueChange(l)}>
-                    <Text style={[styles.chipText, selectedLeague === l && styles.chipTextActive]}>{l}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
-
-            {selectedLeague ? (
-              <>
-                <Text style={styles.label}>TAKIMINI SEÇ</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.teamScroll}>
-                  {teams.map(t => (
-                    <TouchableOpacity key={t} style={getTeamButtonStyle(t)} onPress={() => setSelectedTeam(t)}>
-                      <Text style={[styles.teamBtnText, selectedTeam === t && { color: teamColors[t]?.text || '#121212' }]}>{t}</Text>
-                      {selectedTeam === t && teamColors[t] && (
-                        <View style={{ height: 4, backgroundColor: teamColors[t].secondary, width: '110%', marginTop: 5, borderRadius: 2 }} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            ) : null}
-
-            <Text style={styles.label}>MEVKİ</Text>
-            <View style={styles.chipRow}>
-              {positions.map(p => (
-                <TouchableOpacity key={p} style={[styles.chip, position === p && styles.chipActive]} onPress={() => setPosition(p)}>
-                  <Text style={[styles.chipText, position === p && styles.chipTextActive]}>{p}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.label}>POTANSİYEL & YAŞ</Text>
-            <View style={styles.row}>
-              <View style={[styles.inputWrapper, { flex: 1, marginRight: 10 }]}>
-                <MaterialCommunityIcons name="star" size={18} color="#f1c40f" />
-                <TextInput style={styles.input} placeholder="OVR" keyboardType="numeric" value={rating} onChangeText={setRating} maxLength={2} />
-              </View>
-              <View style={[styles.inputWrapper, { flex: 1 }]}>
-                <TextInput style={styles.input} placeholder="Yaş" keyboardType="numeric" value={age} onChangeText={setAge} maxLength={2} />
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>TAKIM</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Örn: Real Madrid" 
+                placeholderTextColor="#555" 
+                value={selectedTeam} 
+                onChangeText={setSelectedTeam} 
+              />
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
-            {loading ? <ActivityIndicator color="#000" /> : (
-              <>
-                <MaterialCommunityIcons name="content-save-check" size={24} color="#000" style={{ marginRight: 10 }} />
-                <Text style={styles.saveButtonText}>Sisteme Kaydet</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      )}
+          <Text style={styles.label}>SCOUT ETİKETLERİ (Maks. 3)</Text>
+          <View style={styles.tagRow}>
+            {['Hızlı', 'Teknik', 'Bitirici', 'Lider', 'Fizikli'].map(tag => (
+              <TouchableOpacity 
+                key={tag} 
+                style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipActive]}
+                onPress={() => toggleTag(tag)}
+              >
+                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>#{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.saveButton, { opacity: loading ? 0.7 : 1 }]} 
+          onPress={handleSave} 
+          disabled={loading}
+        >
+          {loading ? <ActivityIndicator color="#000" /> : (
+            <Text style={styles.saveButtonText}>RADARA AL 📡</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
-  header: { padding: 30, paddingTop: Platform.OS === 'ios' ? 10 : 40, backgroundColor: '#1e1e1e', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 10 },
-  formContainer: { padding: 20, paddingBottom: 50 },
-  formCard: { backgroundColor: '#1e1e1e', padding: 20, borderRadius: 25, borderWidth: 1, borderColor: '#333' },
-  label: { color: '#2ecc71', fontSize: 11, fontWeight: 'bold', marginBottom: 12, marginTop: 15, letterSpacing: 1 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2c2c2c', borderRadius: 12, paddingHorizontal: 15, height: 50, marginBottom: 10 },
-  input: { flex: 1, color: '#fff', fontSize: 15 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: '#2c2c2c', borderWidth: 1, borderColor: '#444' },
-  chipActive: { backgroundColor: '#2ecc71', borderColor: '#2ecc71' },
-  chipText: { color: '#95a5a6', fontSize: 13, fontWeight: 'bold' },
-  chipTextActive: { color: '#121212' },
-  teamScroll: { flexDirection: 'row', marginBottom: 10 },
-  teamBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 15, backgroundColor: '#2c2c2c', marginRight: 10, borderWidth: 1, borderColor: '#444', alignItems: 'center', minWidth: 100 },
-  teamBtnActive: { backgroundColor: '#f1c40f', borderColor: '#f1c40f' },
-  teamBtnText: { color: '#95a5a6', fontSize: 14, fontWeight: 'bold' },
-  saveButton: { flexDirection: 'row', backgroundColor: '#2ecc71', height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 25 },
-  saveButtonText: { color: '#121212', fontSize: 18, fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#0f0f0f' },
+  header: { padding: 25, backgroundColor: '#1a1a1a', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  headerSub: { color: '#7f8c8d', fontSize: 12, marginTop: 5, fontWeight: '600' },
+  rightsBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  rightsText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  formContainer: { padding: 20 },
+  formCard: { backgroundColor: '#1a1a1a', padding: 20, borderRadius: 25, borderWidth: 1, borderColor: '#333' },
+  label: { color: '#2ecc71', fontSize: 10, fontWeight: '900', marginBottom: 10, marginTop: 15, letterSpacing: 1 },
+  input: { backgroundColor: '#262626', color: '#fff', padding: 15, borderRadius: 15, fontSize: 16, fontWeight: '600' },
+  row: { flexDirection: 'row' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  tagChip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: '#262626', borderWidth: 1, borderColor: '#333' },
+  tagChipActive: { backgroundColor: 'rgba(46, 204, 113, 0.2)', borderColor: '#2ecc71' },
+  tagText: { color: '#7f8c8d', fontSize: 12, fontWeight: 'bold' },
+  tagTextActive: { color: '#2ecc71' },
+  saveButton: { backgroundColor: '#2ecc71', height: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 30, elevation: 10 },
+  saveButtonText: { color: '#000', fontSize: 18, fontWeight: '900', letterSpacing: 1 }
 });

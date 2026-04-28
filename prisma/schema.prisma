@@ -1,3 +1,5 @@
+// Dosya Yolu: prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,37 +14,80 @@ model User {
   email                 String       @unique
   password              String
   name                  String
-  totalScoutScore       Float        @default(0)
-  weeklyScore           Float        @default(0)
+  
+  // 🏆 Puan ve Seviye Sistemi
+  totalXP               Int          @default(0)
+  scoutLevel            Int          @default(1)
+  totalScoutScore       Float        @default(0) // Piyasa değeri artışından gelen ana puan
   successfulPredictions Int          @default(0)
+  
+  // 📅 Haftalık Tahmin Sınırı Kontrolü
+  weeklyPredictionsLeft Int          @default(2) // Haftalık 2 hak
+  lastResetDate         DateTime     @default(now())
+  
   createdAt             DateTime     @default(now())
   
+  // İlişkiler
   predictions           Prediction[]
+  notebookEntries       Notebook[]   // Not defteri ilişkisi
   
-  @@index([totalScoutScore(sort: Desc), successfulPredictions(sort: Desc)])
+  @@index([totalScoutScore(sort: Desc), totalXP(sort: Desc)])
 }
 
 model Player {
-  id           String       @id @default(uuid())
-  externalId   Int          @unique
-  name         String
-  position     String
-  team         String
-  predictions  Prediction[]
+  id                String       @id @default(uuid())
+  externalId        Int          @unique
+  name              String
+  position          String
+  team              String
+  age               Int?
+  foot              String?
+  country           String?
+  league            String?
+  isGlobal          Boolean      @default(false)
+  
+  // 💰 Ekonomi ve Veri
+  currentMarketValue Float       @default(0) 
+  marketValueLastUpdated DateTime @default(now()) // Değerin ne zaman güncellendiğini bilmeliyiz
+  rating            Int?
+  
+  // İlişkiler
+  predictions       Prediction[]
+  notebookEntries   Notebook[]
 }
 
 model Prediction {
-  id              String   @id @default(uuid())
-  userId          String
-  playerId        String
-  predictedAt     DateTime @default(now())
-  isVisible       Boolean  @default(false)
-  hasScoutBadge   Boolean  @default(false)
-  pointsEarned    Float    @default(0)
-  isProcessed     Boolean  @default(false)
+  id                String   @id @default(uuid())
+  userId            String
+  playerId          String
+  
+  // 🚀 Tahmin Detayları (Nijerya'dan Real Madrid'e giden yol)
+  predictedAt       DateTime @default(now())
+  initialValue      Float    // Tahmin anındaki değer (Kâr hesabı için kritik)
+  discoveryOrder    Int      // Dünyada kaçıncı bulan kişi? (1, 2, 3...)
+  multiplier        Float    @default(1.0) // 1. kişiye 5x, 2.ye 3x vb.
+  
+  isVisible         Boolean  @default(false) 
+  isProcessed       Boolean  @default(false) // Değer artışı puana dönüştü mü?
+  pointsEarned      Float    @default(0)
 
-  user            User     @relation(fields: [userId], references: [id])
-  player          Player   @relation(fields: [playerId], references: [id])
+  // İlişki Tanımları
+  user              User     @relation(fields: [userId], references: [id])
+  player            Player   @relation(fields: [playerId], references: [id])
 
-  @@unique([userId, playerId])
+  @@unique([userId, playerId]) // Bir kullanıcı bir oyuncuyu sadece bir kez tahmin edebilir
+}
+
+model Notebook {
+  id          String   @id @default(uuid())
+  userId      String
+  playerId    String
+  note        String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  // İlişki Tanımları
+  user        User     @relation(fields: [userId], references: [id])
+  player      Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([userId, playerId]) // Bir kullanıcı bir oyuncuyu not defterine bir kez ekleyebilir
 }

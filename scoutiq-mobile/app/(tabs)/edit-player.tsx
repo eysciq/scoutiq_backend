@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, StatusBar } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// 🔥 DÜZELTME: Sabit IP yerine dinamik CONFIG kullanıyoruz
+import { CONFIG } from '../../constants';
 
 // 🏷️ HAZIR SCOUT ETİKETLERİ HAVUZU
 const PREDEFINED_TAGS = ['Hızlı', 'Hava Topu', 'Oyun Kurucu', 'Lider', 'Bitirici', 'Agresif', 'Çalışkan', 'Sakatlığa Meyilli', 'Teknik', 'Dinamik'];
 
-// 🎨 TAKIM RENK KÜTÜPHANESİ (Senin Dev Listen)
+// 🎨 TAKIM RENK KÜTÜPHANESİ
 const teamColors: { [key: string]: { primary: string, secondary: string, text: string } } = {
   'Galatasaray': { primary: '#A90432', secondary: '#FDB912', text: '#fff' },
   'Fenerbahçe': { primary: '#002347', secondary: '#FEDD00', text: '#fff' },
@@ -53,17 +55,15 @@ export default function EditPlayerScreen() {
   const positions = ['Forvet', 'Orta Saha', 'Defans', 'Kaleci'];
   const feet = ['Sağ', 'Sol', 'İki Ayak'];
 
-  const BACKEND_URL = 'http://192.168.1.181:3001';
-
   // 📡 Veri Çekme Mantığı
   const fetchInitialData = async () => {
     try {
-      const cRes = await fetch(`${BACKEND_URL}/countries`);
+      const cRes = await fetch(`${CONFIG.BACKEND_URL}/countries`);
       const cData = await cRes.json();
       setCountries(cData);
 
       if (id) {
-        const pRes = await fetch(`${BACKEND_URL}/player-details/${id}`);
+        const pRes = await fetch(`${CONFIG.BACKEND_URL}/player-details/${id}`);
         if (pRes.ok) {
           const pData = await pRes.json();
           setName(pData.name || '');
@@ -76,16 +76,21 @@ export default function EditPlayerScreen() {
           
           if (pData.country) {
             setSelectedCountry(pData.country);
-            const lRes = await fetch(`${BACKEND_URL}/leagues?country=${pData.country}`);
+            const lRes = await fetch(`${CONFIG.BACKEND_URL}/leagues?country=${pData.country}`);
             setLeagues(await lRes.json());
           }
           if (pData.league) {
             setSelectedLeague(pData.league);
-            const tRes = await fetch(`${BACKEND_URL}/teams?country=${pData.country}&league=${pData.league}`);
+            const tRes = await fetch(`${CONFIG.BACKEND_URL}/teams?country=${pData.country}&league=${pData.league}`);
             setTeams(await tRes.json());
           }
           if (pData.team) setSelectedTeam(pData.team);
-          setSelectedTags(Array.isArray(pData.tags) ? pData.tags : []);
+
+          // 🔥 DÜZELTME: Backend'den string gelirse diziye çeviriyoruz
+          const tagsArray = Array.isArray(pData.tags) 
+            ? pData.tags 
+            : (typeof pData.tags === 'string' ? pData.tags.split(',').filter((t: string) => t !== "") : []);
+          setSelectedTags(tagsArray);
         }
       }
     } catch (e) {
@@ -112,12 +117,12 @@ export default function EditPlayerScreen() {
 
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country); setSelectedLeague(''); setSelectedTeam('');
-    fetch(`${BACKEND_URL}/leagues?country=${country}`).then(res => res.json()).then(data => setLeagues(data));
+    fetch(`${CONFIG.BACKEND_URL}/leagues?country=${country}`).then(res => res.json()).then(data => setLeagues(data));
   };
 
   const handleLeagueChange = (league: string) => {
     setSelectedLeague(league); setSelectedTeam('');
-    fetch(`${BACKEND_URL}/teams?country=${selectedCountry}&league=${league}`).then(res => res.json()).then(data => setTeams(data));
+    fetch(`${CONFIG.BACKEND_URL}/teams?country=${selectedCountry}&league=${league}`).then(res => res.json()).then(data => setTeams(data));
   };
 
   const getTeamButtonStyle = (tName: string) => {
@@ -139,7 +144,7 @@ export default function EditPlayerScreen() {
       const payload = {
         name: name.trim(),
         position,
-        rating: rating.toString(),
+        rating: parseInt(rating) || 0, // 🔥 DÜZELTME: Prisma Integer bekliyor
         age: age ? parseInt(age) : null,
         height: height ? parseInt(height) : null,
         weight: weight ? parseInt(weight) : null,
@@ -147,14 +152,14 @@ export default function EditPlayerScreen() {
         team: selectedTeam,
         league: selectedLeague || "Bilinmiyor",
         country: selectedCountry || "Bilinmiyor",
-        tags: selectedTags
+        tags: selectedTags.join(',') // 🔥 DÜZELTME: Virgülle ayrılmış string olarak kaydediyoruz
       };
 
       if (mode === 'clone') {
         const rawEmail = await AsyncStorage.getItem('userEmail');
         const scoutEmail = rawEmail ? rawEmail.toLowerCase().trim() : 'misafir@scoutiq.com';
 
-        const response = await fetch(`${BACKEND_URL}/add-player`, {
+        const response = await fetch(`${CONFIG.BACKEND_URL}/add-player`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, scoutEmail }),
@@ -170,7 +175,7 @@ export default function EditPlayerScreen() {
         }
       } 
       else {
-        const response = await fetch(`${BACKEND_URL}/update-player/${id}`, {
+        const response = await fetch(`${CONFIG.BACKEND_URL}/update-player/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -183,7 +188,7 @@ export default function EditPlayerScreen() {
         }
       }
     } catch (e) {
-      Alert.alert("Hata", "Bağlantı kesildi.");
+      Alert.alert("Hata", "Bağlantı kesildi. IP adresinizi kontrol edin.");
     } finally {
       setLoading(false);
     }
@@ -309,7 +314,7 @@ export default function EditPlayerScreen() {
   );
 }
 
-// ... Styles (Senin stillerin aynen kalsın, yer kalmadığı için özetledim ama her detayını biliyorum)
+// Bütün stiller eksiksiz burada, hiçbir şey bozulmayacak!
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },

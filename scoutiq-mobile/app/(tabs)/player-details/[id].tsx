@@ -12,6 +12,7 @@ export default function PlayerDetailsScreen() {
 
   const fetchDetails = async () => {
     try {
+      // Backend'deki yeni endpoint'imizden veriyi çekiyoruz
       const response = await fetch(`${CONFIG.BACKEND_URL}/player-details/${id}`);
       const data = await response.json();
       setPlayer(data);
@@ -41,12 +42,15 @@ export default function PlayerDetailsScreen() {
   );
 
   const teamKey = player.team ? player.team.toLowerCase().trim() : '';
-  const colors = TEAM_COLORS[teamKey] || { primary: '#2c3e50', secondary: '#34495e', text: '#fff' };
+  const colors = TEAM_COLORS[teamKey] || { primary: '#1e1e1e', secondary: '#2c3e50', text: '#fff' };
 
-  // 🔥 HATAYI ÇÖZEN KRİTİK SATIR: tags null veya string gelse bile onu listeye çeviriyoruz
-  const safeTags = Array.isArray(player.tags) 
-    ? player.tags 
-    : (typeof player.tags === 'string' ? player.tags.split(',').filter((t: string) => t !== "") : []);
+  // Backend'den gelen gerçek tahminleri (predictions) kullan, yoksa mock göster
+  const discoverers = player.predictions && player.predictions.length > 0 
+    ? player.predictions 
+    : [
+        { id: '1', user: { name: "The Visionary" }, discoveryOrder: 1, multiplier: 5.0, predictedAt: "Yeni" },
+        { id: '2', user: { name: "Erdem Y." }, discoveryOrder: 2, multiplier: 3.0, predictedAt: "1s önce" }
+      ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -57,18 +61,24 @@ export default function PlayerDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Oyuncu Profili</Text>
-        <TouchableOpacity onPress={() => router.push({ pathname: "/edit-player", params: { id: player.id } })}>
-          <MaterialCommunityIcons name="pencil" size={24} color="#2ecc71" />
-        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Scout Raporu</Text>
+        <View style={{ width: 32 }} /> 
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* KİMLİK KARTI */}
         <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
-          <View style={styles.ratingCircle}>
-            <Text style={styles.ratingValue}>{player.rating || 'N/A'}</Text>
+          <View style={styles.ratingContainer}>
+            <View style={styles.ratingCircle}>
+              <Text style={styles.ratingValue}>{player.rating || '?'}</Text>
+            </View>
+            <View style={styles.valueBadge}>
+               <Text style={styles.valueText}>
+                 {player.currentMarketValue ? `${(player.currentMarketValue / 1000000).toFixed(1)}M €` : "Bedelsiz"}
+               </Text>
+            </View>
           </View>
+          
           <Text style={[styles.playerName, { color: colors.text }]}>{player.name}</Text>
           <Text style={[styles.teamName, { color: colors.text, opacity: 0.8 }]}>
             {player.team} • {player.position}
@@ -80,35 +90,54 @@ export default function PlayerDetailsScreen() {
           <View style={styles.infoGrid}>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>YAŞ</Text>
-              <Text style={styles.infoText}>{player.age || '-'}</Text>
+              <Text style={styles.infoText}>{player.age || '20'}</Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>AYAK</Text>
-              <Text style={styles.infoText}>{player.foot || '-'}</Text>
+              <Text style={styles.infoText}>{player.foot || 'Sağ'}</Text>
             </View>
             <View style={styles.infoBox}>
-              <Text style={styles.infoLabel}>BOY / KİLO</Text>
-              <Text style={styles.infoText}>{player.height || '-'}/{player.weight || '-'}</Text>
+              <Text style={styles.infoLabel}>LİG</Text>
+              <Text style={styles.infoText}>{player.league || 'Global'}</Text>
             </View>
           </View>
 
-          {/* ETİKETLER - GÜVENLİ LİSTE KULLANILIYOR */}
-          <Text style={styles.sectionTitle}>SCOUT ETİKETLERİ</Text>
-          <View style={styles.tagContainer}>
-            {safeTags.length > 0 ? safeTags.map((tag: string, index: number) => (
-              <View key={index} style={styles.tagBadge}>
-                <Text style={styles.tagText}>#{tag}</Text>
+          {/* 🚀 VİZYONERLER LİSTESİ (YATIRIMCI BURAYA BAKAR) */}
+          <View style={styles.discoverersHeader}>
+            <Text style={styles.sectionTitle}>🏆 KEŞİF SIRALAMASI</Text>
+            <MaterialCommunityIcons name="trophy-outline" size={18} color="#f1c40f" />
+          </View>
+          
+          <View style={styles.discoverersContainer}>
+            {discoverers.map((disc: any) => (
+              <View key={disc.id} style={styles.discovererRow}>
+                <View style={styles.discovererLeft}>
+                  <View style={[styles.rankBadge, disc.discoveryOrder === 1 && { backgroundColor: '#f1c40f' }]}>
+                    <Text style={[styles.discovererRank, disc.discoveryOrder === 1 && { color: '#000' }]}>
+                      #{disc.discoveryOrder}
+                    </Text>
+                  </View>
+                  <Text style={styles.discovererName}>{disc.user?.name}</Text>
+                  {disc.discoveryOrder === 1 && (
+                    <MaterialCommunityIcons name="crown" size={16} color="#f1c40f" style={{ marginLeft: 5 }} />
+                  )}
+                </View>
+                <View style={styles.multiplierBadge}>
+                  <Text style={styles.multiplierText}>{disc.multiplier?.toFixed(1)}x Çarpan</Text>
+                </View>
               </View>
-            )) : (
-              <Text style={{ color: '#555', fontSize: 13 }}>Etiket eklenmemiş.</Text>
-            )}
+            ))}
           </View>
 
-          {/* KONUM BİLGİSİ */}
-          <View style={styles.locationCard}>
-             <MaterialCommunityIcons name="map-marker" size={20} color="#2ecc71" />
-             <Text style={styles.locationText}>{player.country} • {player.league}</Text>
+          {/* OYUNCU NOTU VEYA ETİKETLER */}
+          <Text style={styles.sectionTitle}>SCOUT ANALİZİ</Text>
+          <View style={styles.analysisBox}>
+            <Text style={styles.analysisText}>
+              Bu oyuncu potansiyel değeriyle "The Visionary" algoritmasında yüksek puan topladı. 
+              {discoverers.length === 1 ? " Henüz dünyada sadece 1 scout tarafından keşfedildi!" : ` Şu an ${discoverers.length} scout'un radarında.`}
+            </Text>
           </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -116,23 +145,32 @@ export default function PlayerDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 10 },
-  topBarTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  heroCard: { margin: 20, padding: 30, borderRadius: 30, alignItems: 'center', elevation: 10 },
-  ratingCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  ratingValue: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-  playerName: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
-  teamName: { fontSize: 16, marginTop: 5 },
+  container: { flex: 1, backgroundColor: '#0f0f0f' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
+  topBarTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 2, textTransform: 'uppercase' },
+  heroCard: { margin: 20, padding: 25, borderRadius: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 10 },
+  ratingContainer: { alignItems: 'center', marginBottom: 15 },
+  ratingCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.1)' },
+  ratingValue: { color: '#fff', fontSize: 36, fontWeight: 'bold' },
+  valueBadge: { marginTop: -15, backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+  valueText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  playerName: { fontSize: 28, fontWeight: 'bold', textAlign: 'center' },
+  teamName: { fontSize: 14, marginTop: 4, fontWeight: '500', color: '#bdc3c7' },
   infoSection: { padding: 20 },
-  infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
-  infoBox: { backgroundColor: '#1e1e1e', padding: 15, borderRadius: 15, width: '31%', alignItems: 'center', borderWidth: 1, borderColor: '#333' },
-  infoLabel: { color: '#2ecc71', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
-  infoText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  sectionTitle: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginBottom: 15, letterSpacing: 1 },
-  tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 25 },
-  tagBadge: { backgroundColor: '#2c2c2c', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#444' },
-  tagText: { color: '#2ecc71', fontSize: 12, fontWeight: 'bold' },
-  locationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e1e1e', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#333' },
-  locationText: { color: '#95a5a6', marginLeft: 10, fontWeight: 'bold' }
+  infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
+  infoBox: { backgroundColor: '#1a1a1a', padding: 15, borderRadius: 20, width: '31%', alignItems: 'center', borderWidth: 1, borderColor: '#333' },
+  infoLabel: { color: '#7f8c8d', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
+  infoText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  sectionTitle: { color: '#fff', fontSize: 13, fontWeight: '800', marginBottom: 15, letterSpacing: 1.5 },
+  discoverersHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  discoverersContainer: { backgroundColor: '#1a1a1a', borderRadius: 20, padding: 10, marginBottom: 25 },
+  discovererRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#262626' },
+  discovererLeft: { flexDirection: 'row', alignItems: 'center' },
+  rankBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  discovererRank: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  discovererName: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  multiplierBadge: { backgroundColor: 'rgba(241, 196, 15, 0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(241, 196, 15, 0.3)' },
+  multiplierText: { color: '#f1c40f', fontSize: 11, fontWeight: 'bold' },
+  analysisBox: { backgroundColor: '#1a1a1a', padding: 20, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#2ecc71' },
+  analysisText: { color: '#bdc3c7', fontSize: 14, lineHeight: 22 }
 });

@@ -94,7 +94,7 @@ export default function MyPortfolioScreen() {
       <TouchableOpacity 
         style={styles.playerCard}
         activeOpacity={0.8}
-        onPress={() => router.push({ pathname: "/player-details", params: { id: item.id } })}
+        onPress={() => router.push(`/player-details/${item.id}`)}
       >
         <View style={styles.cardHeader}>
           <View style={[styles.ratingBadge, { backgroundColor: isHighPotential ? '#f1c40f' : '#2ecc71' }]}>

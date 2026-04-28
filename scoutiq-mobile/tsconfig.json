@@ -6,12 +6,16 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    // 🔥 Expo tarafındaki TypeScript 5.0 uyarısını buraya ekliyoruz
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
+    "**/*.js", 
+    "**/*.jsx",
     "expo-env.d.ts"
   ]
 }

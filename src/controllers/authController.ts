@@ -1,3 +1,5 @@
+// Dosya Yolu: src/controllers/auth.controllers.ts
+
 import { Request, Response } from 'express';
 import prisma from '../config/db';
 
@@ -12,23 +14,29 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Yeni kullanıcıyı oluştur (totalScoutScore ve successfulPredictions Prisma şemasında @default(0) olduğu için burada yazmamıza gerek yok, otomatik 0 atanır)
+    // Yeni kullanıcıyı oluştur
+    // Not: schema.prisma'da tanımladığımız default değerler burada devreye giriyor (Level 1, 2 Tahmin Hakkı vb.)
     const newUser = await prisma.user.create({
       data: {
         email,
-        password, // İleride buraya bcrypt ekleyeceğiz, şimdilik düz tutuyoruz
-        name
+        password, // Not: Gerçek projede burası kesinlikle bcrypt ile şifrelenmeli!
+        name,
+        weeklyPredictionsLeft: 2, // Yeni başlayan scout'a 2 hak tanımlıyoruz
+        totalXP: 0,
+        scoutLevel: 1
       }
     });
 
     res.status(201).json({
-      message: "Kayıt başarılı!",
+      message: "ScoutIQ dünyasına hoş geldin!",
       user: {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        totalScoutScore: newUser.totalScoutScore,
-        successfulPredictions: newUser.successfulPredictions
+        scoutLevel: newUser.scoutLevel,
+        totalXP: newUser.totalXP,
+        weeklyPredictionsLeft: newUser.weeklyPredictionsLeft,
+        totalScoutScore: newUser.totalScoutScore
       }
     });
   } catch (error: any) {
@@ -48,15 +56,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Başarılı girişte dönecek veriler
+    // 🔥 KRİTİK: Haftalık hakların resetlenme zamanı geldi mi kontrolü burada yapılabilir 
+    // (Şimdilik manuel tutuyoruz ama altyapı hazır)
+
     res.status(200).json({
-      message: "Giriş başarılı!",
-      token: "gecici-jwt-token-123", // İleride burayı gerçek JWT yapacağız
+      message: "Giriş başarılı! Sahaya dönmeye hazır mısın?",
+      token: "gecici-jwt-token-123", 
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        totalScoutScore: user.totalScoutScore, // <-- Hata veren yer burasıydı, düzelttik
+        scoutLevel: user.scoutLevel,
+        totalXP: user.totalXP,
+        weeklyPredictionsLeft: user.weeklyPredictionsLeft,
+        totalScoutScore: user.totalScoutScore,
         successfulPredictions: user.successfulPredictions
       }
     });

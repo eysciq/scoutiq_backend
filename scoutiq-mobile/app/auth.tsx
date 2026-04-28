@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🚀 MERKEZİ AYARLAR (Yolu dosya konumuna göre güncelledik)
+// 🚀 MERKEZİ AYARLAR
 import { CONFIG } from '../constants'; 
 
 export default function AuthScreen() {
@@ -44,7 +44,7 @@ export default function AuthScreen() {
         Alert.alert("Kayıt Başarısız", data.message || "Bu e-posta kullanımda olabilir.");
       }
     } catch (error) {
-      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. Backend IP adresini kontrol et.");
+      Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamadı. Backend çalışıyor mu?");
     } finally {
       setLoading(false);
     }
@@ -69,8 +69,12 @@ export default function AuthScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        // 💾 Oturumu hatırla
+        // 🔥 KRİTİK DÜZELTME: İsmi ve E-postayı beraber kaydediyoruz
         await AsyncStorage.setItem('userEmail', email.toLowerCase().trim());
+        if (data.user && data.user.name) {
+          await AsyncStorage.setItem('userName', data.user.name);
+        }
+        
         // 🚀 Ana uygulamaya geç!
         router.replace('/(tabs)'); 
       } else {

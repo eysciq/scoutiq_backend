@@ -16,19 +16,24 @@ export default function RootLayout() {
   }, []);
 
   return (
+    // 🔥 NOT: Uygulaman scout ruhuna uygun olarak 'dark' modda daha iyi duruyor.
+    // Cihaz ne olursa olsun DarkTheme'i zorlamak istersen 'DarkTheme' yazabilirsin.
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ 
+        headerShown: false,
+        animation: 'fade_from_bottom', // Sayfa geçişleri daha akıcı (premium) görünür
+      }}>
         
-        {/* 🚪 BEKÇİ / KONTROL SAYFASI */}
+        {/* 🚪 BEKÇİ / KONTROL SAYFASI (Giriş yapılmış mı kontrolü burada döner) */}
         <Stack.Screen name="index" />
         
-        {/* 🔐 GİRİŞ & KAYIT SİSTEMİ (auth klasörü) */}
-        <Stack.Screen name="auth" />
+        {/* 🔐 GİRİŞ & KAYIT SİSTEMİ */}
+        <Stack.Screen name="auth" options={{ animation: 'fade' }} />
         
-        {/* ⚽ ANA TAB SİSTEMİ (Portföy, Keşfet, Profil ve Alt Sayfalar) */}
+        {/* ⚽ ANA TAB SİSTEMİ (Portföy, Keşfet, Profil) */}
         <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
         
-        {/* 📝 MODAL (Eğer genel bir modal kullanıyorsan) */}
+        {/* 📝 GENEL MODAL SİSTEMİ */}
         <Stack.Screen 
           name="modal" 
           options={{ 

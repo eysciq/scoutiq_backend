@@ -1,64 +1,91 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false, 
+        // 🎨 Modern Dark Navigasyon Tasarımı
         tabBarStyle: {
-          backgroundColor: '#1a1a1a', 
+          backgroundColor: '#0f0f0f', // Daha derin siyah
           borderTopWidth: 1,
-          borderTopColor: '#333',
-          height: 65,
-          paddingBottom: 10,
+          borderTopColor: '#262626',
+          height: Platform.OS === 'ios' ? 90 : 70, 
+          paddingBottom: Platform.OS === 'ios' ? 30 : 12,
           paddingTop: 10,
+          elevation: 20,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
         },
         tabBarActiveTintColor: '#2ecc71', // Neon Yeşil
-        tabBarInactiveTintColor: '#7f8c8d', 
+        tabBarInactiveTintColor: '#555', // Sönük Gri
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          marginBottom: 0,
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        },
       }}
     >
-      {/* 1. PORTFÖYÜM (Kendi Scout Raporların) */}
+      {/* 1. PORTFÖYÜM (Tahminlerim) */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Portföy',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="folder-account" size={size} color={color} />
+            <MaterialCommunityIcons name="shield-star-outline" size={size} color={color} />
           ),
         }}
       />
 
-      {/* 🌍 2. KEŞFET (Dünya Yıldızları & Global Havuz) */}
+      {/* 2. KEŞFET (Genel Oyuncu Havuzu) */}
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Keşfet',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="earth" size={size} color={color} />
+            <MaterialCommunityIcons name="compass-outline" size={size} color={color} />
           ),
         }}
       />
 
-      {/* ➕ 3. YENİ RAPOR EKLE (Ana Aksiyon Düğmesi) */}
+      {/* ➕ 3. YENİ RAPOR (Merkezi Buton) */}
       <Tabs.Screen
         name="add"
         options={{
-          tabBarLabel: 'Ekle',
-          title: 'Yeni Rapor', 
+          tabBarLabel: 'Scout',
+          title: 'Yeni Keşif', 
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle" size={size + 8} color={color} />
+            <View style={{
+              backgroundColor: '#2ecc71',
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: -20,
+              borderWidth: 4,
+              borderColor: '#0f0f0f',
+              elevation: 5,
+            }}>
+              <MaterialCommunityIcons name="plus" size={32} color="#000" />
+            </View>
           ),
         }}
       />
 
-      {/* ⚖️ 4. KIYASLA */}
+      {/* 📓 4. NOTLARIM (Notebook - Visionary Fallback) */}
       <Tabs.Screen
-        name="compare"
+        name="notebook" // Bu dosyayı (notebook.tsx) oluşturacağız
         options={{
-          title: 'Kıyasla',
+          title: 'Notlarım',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="scale-balance" size={size} color={color} />
+            <MaterialCommunityIcons name="notebook-outline" size={size} color={color} />
           ),
         }}
       />
@@ -69,7 +96,7 @@ export default function TabLayout() {
         options={{
           title: 'Sıralama',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="trophy" size={size} color={color} />
+            <MaterialCommunityIcons name="trophy-outline" size={size} color={color} />
           ),
         }}
       />
@@ -80,16 +107,26 @@ export default function TabLayout() {
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-circle" size={size} color={color} />
+            <MaterialCommunityIcons name="account-outline" size={size} color={color} />
           ),
         }}
       />
 
-      {/* 🛡️ GİZLİ ROTALAR (Menüde Görünmezler ama sistemde varlar) */}
-      <Tabs.Screen name="edit-player" options={{ href: null }} />
+      {/* 🛡️ GİZLİ ROTALAR (Menüde görünmezler) */}
+      <Tabs.Screen 
+        name="compare" 
+        options={{ href: null, tabBarButton: () => null }} 
+      />
       
-      {/* 👇 İŞTE BURASI DÜZELTİLDİ 👇 */}
-      <Tabs.Screen name="player-details/[id]" options={{ href: null }} />
+      <Tabs.Screen 
+        name="edit-player" 
+        options={{ href: null, tabBarButton: () => null }} 
+      />
+      
+      <Tabs.Screen 
+        name="player-details/[id]" 
+        options={{ href: null, tabBarButton: () => null }} 
+      />
       
     </Tabs>
   );

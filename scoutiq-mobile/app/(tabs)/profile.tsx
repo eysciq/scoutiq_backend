@@ -80,10 +80,10 @@ export default function ProfileScreen() {
     players.forEach(p => {
       if (p.age) totalAge += Number(p.age);
       const pos = (p.position || "").toUpperCase();
-      if (pos.includes('FOR') || pos.includes('ATT') || pos.includes('KANAT')) fv++;
-      else if (pos.includes('ORT') || pos.includes('MID') || pos.includes('MER')) os++;
-      else if (pos.includes('DEF') || pos.includes('STP') || pos.includes('BEK')) df++;
-      else if (pos.includes('KAL') || pos.includes('GK')) kl++;
+      if (pos.includes('FORVET') || pos.includes('ATT') || pos.includes('KANAT')) fv++;
+      else if (pos.includes('ORTA') || pos.includes('MID') || pos.includes('MERKEZ')) os++;
+      else if (pos.includes('DEFANS') || pos.includes('STP') || pos.includes('BEK')) df++;
+      else if (pos.includes('KALECİ') || pos.includes('GK')) kl++;
       else os++; 
     });
 
@@ -95,14 +95,13 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => { loadProfileData(); }, []));
 
-  // 🚀 KESİN ÇÖZÜM: OTURUMU KAPAT VE AUTH EKRANINA FIRLAT
   const cikisYap = () => {
     Alert.alert("Güvenli Çıkış", "Oturumunuz kapatılsın mı?", [
       { text: "İptal", style: "cancel" },
       { text: "Evet", style: "destructive", onPress: async () => {
           try {
-            await AsyncStorage.clear(); // Her şeyi temizle
-            router.replace('/auth'); // 🚪 Giriş kapısına fırlat
+            await AsyncStorage.clear();
+            router.replace('/auth'); 
           } catch (e) {
             Alert.alert("Hata", "Çıkış yapılamadı.");
           }
@@ -117,7 +116,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); loadProfileData();}} tintColor="#2ecc71" />}>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); loadProfileData();}} tintColor="#2ecc71" />} showsVerticalScrollIndicator={false}>
         
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Scout Kariyeri</Text>
@@ -166,8 +165,9 @@ export default function ProfileScreen() {
               
               <View style={styles.legendContainer}>
                 <LegendItem color="#e74c3c" label="Hücum" />
-                <LegendItem color="#f1c40f" label="Merkez" />
+                <LegendItem color="#f1c40f" label="Orta Saha" />
                 <LegendItem color="#3498db" label="Savunma" />
+                <LegendItem color="#9b59b6" label="Kale" />
               </View>
             </View>
           )}
@@ -199,7 +199,8 @@ export default function ProfileScreen() {
                   style={styles.modalPlayerCard}
                   onPress={() => {
                     setModalVisible(false);
-                    router.push({ pathname: "/player-details", params: { id: item.id } });
+                    // 🔥 ASIL DÜZELTME BURADA: Uygulamayı çökerten hatalı yönlendirme düzeltildi!
+                    router.push(`/player-details/${item.id}`);
                   }}
                 >
                   <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#2ecc71" />
